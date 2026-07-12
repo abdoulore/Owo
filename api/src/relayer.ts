@@ -110,32 +110,56 @@ async function sendClaimTx(
 /// client can safely re-POST /claims, since the contract's Pending check makes
 /// resubmission idempotent-safe.
 export async function submitClaim(job: ClaimJob): Promise<{ txHash: Hex }> {
-  const nonce = await nextNonce();
+  let nonce = await nextNonce();
   let gasMultiplierPct = 100n;
   let lastError: unknown;
+  const submittedTxs: Hex[] = [];
+
+  const settleConfirmed = (txHash: Hex) => {
+    updateQueueRow(job.queueId, { status: "confirmed", tx_hash: txHash });
+    console.log(`[relayer] claim confirmed claimId=${job.claimIdOnchain} tx=${txHash}`);
+    return { txHash };
+  };
 
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
     try {
       const txHash = await sendClaimTx(job, nonce, gasMultiplierPct);
+      submittedTxs.push(txHash);
       console.log(`[relayer] claim submitted claimId=${job.claimIdOnchain} attempt=${attempt} tx=${txHash}`);
       updateQueueRow(job.queueId, { status: "submitted", tx_hash: txHash, attempts: attempt });
 
       const confirmed = await waitForConfirmation(txHash);
-      if (confirmed) {
-        updateQueueRow(job.queueId, { status: "confirmed", tx_hash: txHash });
-        console.log(`[relayer] claim confirmed claimId=${job.claimIdOnchain} tx=${txHash}`);
-        return { txHash };
-      }
+      if (confirmed) return settleConfirmed(txHash);
 
       console.warn(`[relayer] claim stuck, bumping gas claimId=${job.claimIdOnchain} attempt=${attempt + 1}`);
       gasMultiplierPct += GAS_BUMP_STEP;
     } catch (err) {
       lastError = err;
       console.error(`[relayer] claim submission attempt ${attempt} failed:`, (err as Error).message);
-      if (/nonce/i.test((err as Error).message ?? "")) resetNonceFromChain();
+
+      // Any error on a RETRY while an earlier tx of ours is in flight usually
+      // means that tx is winning: a nonce error means it consumed the nonce, and
+      // a NotPending simulation revert means pending state already shows the
+      // claim going through. Wait for it properly — an instant receipt check
+      // would race a tx that lands moments later and report a false failure.
+      if (submittedTxs.length > 0) {
+        const landed = await waitForAnyLanded(submittedTxs);
+        if (landed) return settleConfirmed(landed);
+      }
+
+      // Nothing of ours landed: if the nonce is stale (consumed elsewhere or out
+      // of sync), re-acquire for THIS attempt loop, not just future jobs —
+      // otherwise every retry replays the same dead nonce.
+      if (/nonce|already known|replacement/i.test((err as Error).message ?? "")) {
+        resetNonceFromChain();
+        nonce = await nextNonce();
+      }
       gasMultiplierPct += GAS_BUMP_STEP;
     }
   }
+
+  const landed = await waitForAnyLanded(submittedTxs);
+  if (landed) return settleConfirmed(landed);
 
   updateQueueRow(job.queueId, {
     status: "failed",
@@ -143,6 +167,28 @@ export async function submitClaim(job: ClaimJob): Promise<{ txHash: Hex }> {
     error: (lastError as Error)?.message ?? "stuck after max retries",
   });
   throw new Error("Failed to submit claim after retries");
+}
+
+/// Waits one confirmation window on the most recent in-flight tx, then falls back
+/// to an instant receipt sweep of all of them (an older replacement may have won).
+async function waitForAnyLanded(txHashes: Hex[]): Promise<Hex | null> {
+  if (txHashes.length === 0) return null;
+  const latest = txHashes[txHashes.length - 1];
+  if (await waitForConfirmation(latest)) return latest;
+  return findLandedTx(txHashes);
+}
+
+async function findLandedTx(txHashes: Hex[]): Promise<Hex | null> {
+  const publicClient = getPublicClient();
+  for (const hash of txHashes) {
+    try {
+      const receipt = await publicClient.getTransactionReceipt({ hash });
+      if (receipt.status === "success") return hash;
+    } catch {
+      // not mined (or dropped) — keep checking the others
+    }
+  }
+  return null;
 }
 
 async function waitForConfirmation(txHash: Hex): Promise<boolean> {

@@ -53,10 +53,22 @@ function processLog(log: {
 }) {
   switch (log.eventName) {
     case "Sent": {
+      // Match on claim_hash, not claim_id_onchain: the on-chain id is normally
+      // recorded by POST /links/:id/funded, but if the sender's client dies between
+      // the on-chain send and that call, claim_id_onchain is still NULL — the hash
+      // (stored at link creation, emitted in the event) is the only reliable join
+      // key, and this path is what makes funding survive a client crash.
       const claimId = Number(log.args.claimId as bigint);
-      db.prepare(
-        "UPDATE links SET status = 'funded', fund_tx = ? WHERE claim_id_onchain = ? AND status = 'created'"
-      ).run(log.transactionHash, claimId);
+      const claimHash = (log.args.claimHash as string).toLowerCase();
+      const result = db
+        .prepare(
+          `UPDATE links SET status = 'funded', claim_id_onchain = ?, fund_tx = ?
+           WHERE lower(claim_hash) = ? AND status = 'created'`
+        )
+        .run(claimId, log.transactionHash, claimHash);
+      if (result.changes > 0) {
+        console.log(`[indexer] funded claimId=${claimId} tx=${log.transactionHash}`);
+      }
       break;
     }
     case "Claimed": {
