@@ -1,0 +1,28 @@
+# Env
+.env
+.env.local
+*.env
+!.env.example
+!*/.env.example
+
+# Node
+node_modules/
+dist/
+build/
+
+# Foundry
+contracts/lib/
+contracts/out/
+contracts/cache/
+contracts/broadcast/*/*/run-*.json
+
+# SQLite
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# Editor / OS
+.DS_Store
+.vscode/
+*.log
