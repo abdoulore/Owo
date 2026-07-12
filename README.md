@@ -32,10 +32,9 @@ The claim secret lives only in the URL fragment (after `#`), generated client-si
 
 ## Track decision
 
-**Status: pending.** Phase 0 includes a 2-day timeboxed spike on Particle Universal Accounts (EIP-7702 mode). Outcome will be recorded here:
+**Decided: Variant B — ZeroDev smart accounts + sponsored paymaster.** Skipped the Particle UA spike: the Universal Accounts prize delta didn't justify the time against a 10-day-to-milestone schedule, and ZeroDev already delivers genuine account abstraction (the theme this hackathon judges on) without it. Targets General track + Arbitrum bounty + Magic bounty.
 
-- **Variant A (Particle UA, EIP-7702)** — if the spike passes cleanly. Targets the Universal Accounts prize track.
-- **Variant B (ZeroDev smart accounts + sponsored paymaster)** — default fallback if the spike fights back. Targets the General track + Arbitrum bounty + Magic bounty.
+`send()` and `reclaim()` both require `msg.sender` to be the user's own identity (fund pull, sender check), so they're submitted directly from the frontend as sponsored UserOperations through a ZeroDev Kernel account (owner = the Magic-derived key), while the user is present. `claim()` has no such restriction — recipient is an explicit parameter — so it's the one call the backend relayer submits directly, sponsored, on the recipient's behalf. ZeroDev integration is the next piece of work, not yet started.
 
 ## Setup
 
@@ -75,11 +74,12 @@ Deployed addresses (filled in after Phase 1):
 ## Status
 
 - [x] Phase 0: monorepo scaffolded, contracts skeleton, API skeleton, web skeleton with routing
-- [ ] Phase 0: Particle spike run, track decided
-- [ ] Phase 0: Magic Google login working end-to-end
+- [x] Phase 0: track decided (Variant B, ZeroDev — see above), Particle spike skipped
+- [ ] Phase 0: Magic Google login working end-to-end (OAuth callback wired, needs a real publishable key to verify)
 - [x] Phase 1: RemitEscrow + MockUSDC written, full Foundry test suite green (14 tests, including fuzz)
 - [ ] Phase 1: deployed + verified on Arbitrum Sepolia
-- [ ] Phase 2: backend endpoints, relayer, indexer wired end-to-end
+- [x] Phase 2: links/claims/reclaims/history endpoints, relayer (nonce-managed, gas-bump retry), indexer (cursor + backfill) — verified end-to-end against a local Anvil chain: send → fund-verify → claim → indexer status flip → reclaim-verify, all matching on-chain state
+- [ ] Phase 2: ZeroDev integration for send()/reclaim() (frontend, sponsored UserOps)
 - [ ] Phase 3: frontend screens built and polished
 - [ ] Phase 4: cross-chain claim (Variant A only)
 - [ ] Phase 5: hardening, edge cases, copy pass

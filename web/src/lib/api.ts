@@ -5,16 +5,53 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     headers: { "Content-Type": "application/json" },
     ...init,
   });
-  if (!res.ok) throw new Error(`API ${path} failed: ${res.status}`);
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.error ?? `API ${path} failed: ${res.status}`);
+  }
   return res.json() as Promise<T>;
 }
 
-// TODO(Phase 2): flesh out with the real request/response shapes as endpoints land.
+export interface LinkMetadata {
+  amount: string;
+  note: string | null;
+  senderDisplay: string | null;
+  status: "created" | "funded" | "claimed" | "reclaimed" | "expired";
+}
+
+export interface HistoryEntry {
+  linkId: string;
+  amount: string;
+  note: string | null;
+  status: string;
+  createdAt: number;
+  fundTx: string | null;
+  claimTx: string | null;
+  reclaimTx: string | null;
+}
+
 export const api = {
-  createLink: (body: { amount: string; note?: string; senderAddress: string; claimHash: string }) =>
-    request("/links", { method: "POST", body: JSON.stringify(body) }),
-  getLink: (id: string) => request(`/links/${id}`),
+  createLink: (body: {
+    amount: string;
+    note?: string;
+    senderAddress: string;
+    senderDisplay?: string;
+    claimHash: string;
+  }) => request<{ linkId: string; expiry: number }>("/links", { method: "POST", body: JSON.stringify(body) }),
+
+  markFunded: (linkId: string, body: { claimIdOnchain: number; fundTx: string }) =>
+    request<{ status: string }>(`/links/${linkId}/funded`, { method: "POST", body: JSON.stringify(body) }),
+
+  getLink: (id: string) => request<LinkMetadata>(`/links/${id}`),
+
   claim: (body: { linkId: string; recipient: string; secret: string }) =>
-    request("/claims", { method: "POST", body: JSON.stringify(body) }),
-  getHistory: (address: string) => request(`/history/${address}`),
+    request<{ status: string; txHash: string }>("/claims", { method: "POST", body: JSON.stringify(body) }),
+
+  markReclaimed: (body: { linkId: string; reclaimTx: string }) =>
+    request<{ status: string }>("/reclaims", { method: "POST", body: JSON.stringify(body) }),
+
+  getHistory: (address: string) =>
+    request<{ sent: HistoryEntry[]; received: HistoryEntry[]; pending: HistoryEntry[] }>(
+      `/history/${address}`
+    ),
 };
