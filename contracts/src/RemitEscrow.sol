@@ -44,12 +44,20 @@ contract RemitEscrow is ReentrancyGuard {
     error Expired();
     error NotExpired();
     error NotSender();
+    error ZeroAmount();
+    error InvalidClaimHash();
+
+    /// @dev keccak256("") — rejected so a client bug that hashes an empty secret cannot
+    /// create a transfer claimable by anyone who tries the empty string.
+    bytes32 private constant EMPTY_SECRET_HASH = keccak256("");
 
     function send(address token, uint256 amount, bytes32 claimHash, uint256 expiry)
         external
         returns (uint256 claimId)
     {
         if (expiry <= block.timestamp) revert InvalidExpiry();
+        if (amount == 0) revert ZeroAmount();
+        if (claimHash == bytes32(0) || claimHash == EMPTY_SECRET_HASH) revert InvalidClaimHash();
 
         claimId = nextClaimId++;
         transfers[claimId] = Transfer({
@@ -66,6 +74,10 @@ contract RemitEscrow is ReentrancyGuard {
         emit Sent(claimId, msg.sender, token, amount, claimHash, expiry);
     }
 
+    /// @notice Anyone holding the secret can direct funds to any recipient. This is the
+    /// hash-lock model: possession of the link IS the authorization. Revealing the secret
+    /// on-chain cannot be front-run to steal funds on Arbitrum, where the sequencer gives
+    /// no public mempool, and in practice only the app's relayer submits this call.
     function claim(uint256 claimId, bytes calldata secret, address recipient) external nonReentrant {
         Transfer storage t = transfers[claimId];
 

@@ -128,7 +128,26 @@ contract RemitEscrowTest is Test {
         escrow.send(address(usdc), AMOUNT, claimHash, block.timestamp);
     }
 
+    function test_SendRevertsOnZeroAmount() public {
+        vm.prank(sender);
+        vm.expectRevert(RemitEscrow.ZeroAmount.selector);
+        escrow.send(address(usdc), 0, claimHash, expiry);
+    }
+
+    function test_SendRevertsOnZeroClaimHash() public {
+        vm.prank(sender);
+        vm.expectRevert(RemitEscrow.InvalidClaimHash.selector);
+        escrow.send(address(usdc), AMOUNT, bytes32(0), expiry);
+    }
+
+    function test_SendRevertsOnEmptySecretHash() public {
+        vm.prank(sender);
+        vm.expectRevert(RemitEscrow.InvalidClaimHash.selector);
+        escrow.send(address(usdc), AMOUNT, keccak256(""), expiry);
+    }
+
     function testFuzz_SecretHashMatching(bytes memory correctSecret, bytes memory wrongSecret) public {
+        vm.assume(correctSecret.length > 0);
         vm.assume(keccak256(correctSecret) != keccak256(wrongSecret));
 
         bytes32 hash = keccak256(correctSecret);

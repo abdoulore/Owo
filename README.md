@@ -12,6 +12,8 @@ Built for the [UXmaxx Hackathon](https://www.encodeclub.com/programmes/uxmaxx-ha
 
 The claim secret lives only in the URL fragment (after `#`), generated client-side. It is never sent to or stored on the server, except transiently when the recipient submits a claim.
 
+**Security model**: possession of the link is the authorization, like a check made out to cash. `claim()` lets the secret-holder pick the recipient by design. Revealing the secret on-chain cannot be front-run on Arbitrum (sequencer ordering, no public mempool), and only the app's relayer submits claims. The contract rejects zero amounts and the hash of an empty secret, so a client bug cannot mint claimable-by-anyone links.
+
 ## Architecture
 
 ```
@@ -75,7 +77,7 @@ Deployed addresses (filled in after Phase 1):
 - [x] Phase 0: monorepo scaffolded, contracts skeleton, API skeleton, web skeleton with routing
 - [ ] Phase 0: Particle spike run, track decided
 - [ ] Phase 0: Magic Google login working end-to-end
-- [x] Phase 1: RemitEscrow + MockUSDC written, full Foundry test suite green (11 tests, including fuzz)
+- [x] Phase 1: RemitEscrow + MockUSDC written, full Foundry test suite green (14 tests, including fuzz)
 - [ ] Phase 1: deployed + verified on Arbitrum Sepolia
 - [ ] Phase 2: backend endpoints, relayer, indexer wired end-to-end
 - [ ] Phase 3: frontend screens built and polished

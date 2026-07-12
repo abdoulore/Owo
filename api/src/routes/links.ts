@@ -1,5 +1,9 @@
 import { Router } from "express";
 
+// Spec default: links expire 72 hours after creation. The contract only enforces
+// expiry > now; this constant is the single place the default is set.
+export const DEFAULT_EXPIRY_SECONDS = 72 * 60 * 60;
+
 export const linksRouter = Router();
 
 // POST /links — client sends { amount, note?, senderAddress } + claimHash (never the secret).

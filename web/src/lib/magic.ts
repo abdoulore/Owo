@@ -8,12 +8,17 @@ export const magic = new Magic(MAGIC_PUBLISHABLE_KEY, {
 });
 
 export async function loginWithGoogle() {
-  // TODO(Phase 0 spike): confirm OAuth redirect flow works end-to-end,
-  // log the resulting wallet address (never shown to the user in the UI).
   await magic.oauth2.loginWithRedirect({
     provider: "google",
     redirectURI: `${window.location.origin}/auth/callback`,
   });
+}
+
+/// Completes the OAuth flow on /auth/callback. Returns the user's provisioned
+/// address so the caller can route onward; the address is never shown in the UI.
+export async function completeGoogleLogin(): Promise<string | null> {
+  await magic.oauth2.getRedirectResult();
+  return getUserAddress();
 }
 
 export async function getUserAddress(): Promise<string | null> {
