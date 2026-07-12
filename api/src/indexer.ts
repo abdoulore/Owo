@@ -4,7 +4,15 @@ import { config } from "./config.js";
 import { remitEscrowAbi } from "./abi/remitEscrow.js";
 
 const POLL_INTERVAL_MS = 4_000;
-const MAX_BLOCK_RANGE = 2_000n; // per-poll cap so a long-dead process doesn't request an unbounded range
+// Alchemy's free tier caps eth_getLogs to a 10-block range per request (confirmed
+// against the actual deployed endpoint). Arbitrum Sepolia produces blocks far
+// faster than 10 blocks per POLL_INTERVAL_MS (measured ~5/sec, sometimes more) --
+// one chunk per tick falls further behind forever and never confirms a claim.
+// pollOnce() below loops through consecutive chunks within a single tick until
+// caught up, so throughput is bounded by the RPC's actual response rate, not by
+// the poll interval.
+const MAX_BLOCK_RANGE = 10n;
+const MAX_CHUNKS_PER_TICK = 200; // safety cap: 2000 blocks/tick before yielding to the next interval
 
 function getCursor(): bigint | null {
   const row = db.prepare("SELECT block FROM cursor WHERE key = 'escrow'").get() as
@@ -19,31 +27,36 @@ function setCursor(block: bigint) {
 
 async function pollOnce() {
   const publicClient = getPublicClient();
-  const latest = await publicClient.getBlockNumber();
 
-  let fromBlock = getCursor();
-  if (fromBlock === null) {
-    fromBlock = latest;
-    setCursor(fromBlock);
+  const cursor = getCursor();
+  if (cursor === null) {
+    const latest = await publicClient.getBlockNumber();
+    setCursor(latest);
     return;
   }
 
-  if (fromBlock >= latest) return;
+  let fromBlock: bigint = cursor;
 
-  const toBlock = fromBlock + MAX_BLOCK_RANGE < latest ? fromBlock + MAX_BLOCK_RANGE : latest;
+  for (let chunk = 0; chunk < MAX_CHUNKS_PER_TICK; chunk++) {
+    const latest = await publicClient.getBlockNumber();
+    if (fromBlock >= latest) return;
 
-  const logs = await publicClient.getLogs({
-    address: config.escrowAddress(),
-    events: remitEscrowAbi.filter((item) => item.type === "event"),
-    fromBlock: fromBlock + 1n,
-    toBlock,
-  });
+    const toBlock: bigint = fromBlock + MAX_BLOCK_RANGE < latest ? fromBlock + MAX_BLOCK_RANGE : latest;
 
-  for (const log of logs) {
-    processLog(log);
+    const logs = await publicClient.getLogs({
+      address: config.escrowAddress(),
+      events: remitEscrowAbi.filter((item) => item.type === "event"),
+      fromBlock: fromBlock + 1n,
+      toBlock,
+    });
+
+    for (const log of logs) {
+      if (log.transactionHash) processLog({ ...log, transactionHash: log.transactionHash });
+    }
+
+    setCursor(toBlock);
+    fromBlock = toBlock;
   }
-
-  setCursor(toBlock);
 }
 
 function processLog(log: {

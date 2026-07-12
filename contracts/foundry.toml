@@ -11,6 +11,6 @@ remappings = [
 arbitrum_sepolia = "${ARBITRUM_SEPOLIA_RPC}"
 
 [etherscan]
-arbitrum_sepolia = { key = "${ARBISCAN_API_KEY}", chain = 421614, url = "https://api-sepolia.arbiscan.io/api" }
+arbitrum_sepolia = { key = "${ARBISCAN_API_KEY}", chain = 421614 }
 
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options

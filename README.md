@@ -71,10 +71,10 @@ cd contracts
 forge script script/Deploy.s.sol --rpc-url arbitrum_sepolia --broadcast --verify
 ```
 
-Deployed addresses (filled in after Phase 1):
+Deployed and verified on Arbitrum Sepolia:
 
-- `RemitEscrow`: _pending_
-- `MockUSDC` (if used): _pending_
+- `RemitEscrow`: [`0x00d218141984B2e030CDBaA30C86916AD0633e29`](https://sepolia.arbiscan.io/address/0x00d218141984B2e030CDBaA30C86916AD0633e29)
+- `MockUSDC`: [`0xd888A21708fCe03889B5275544831fb2179E6d9a`](https://sepolia.arbiscan.io/address/0xd888A21708fCe03889B5275544831fb2179E6d9a)
 
 ## Status
 
@@ -82,7 +82,7 @@ Deployed addresses (filled in after Phase 1):
 - [x] Phase 0: track decided (Variant B, ZeroDev — see above), Particle spike skipped
 - [ ] Phase 0: Magic Google login working end-to-end (OAuth callback wired, needs a real publishable key to verify)
 - [x] Phase 1: RemitEscrow + MockUSDC written, full Foundry test suite green (14 tests, including fuzz)
-- [ ] Phase 1: deployed + verified on Arbitrum Sepolia
+- [x] Phase 1: deployed + verified on Arbitrum Sepolia (addresses above)
 - [x] Phase 2: links/claims/reclaims/history endpoints, relayer (nonce-managed, gas-bump retry), indexer (cursor + backfill) — verified end-to-end against a local Anvil chain: send → fund-verify → claim → indexer status flip → reclaim-verify, all matching on-chain state
 - [~] Phase 2: ZeroDev integration for send()/reclaim() — Kernel account (Magic signer as owner), batched approve+send, reclaim, wired into Send/Home. ECDSA validator derivation confirmed against a real chain; full account creation + sponsored UserOp submission NOT yet verified — needs a real `VITE_ZERODEV_PROJECT_ID` and a publicly reachable RPC (a bare local Anvil lacks the ERC-4337 EntryPoint singleton, and ZeroDev's hosted bundler can't reach localhost anyway)
 - [ ] Phase 3: frontend screens built and polished
