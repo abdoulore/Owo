@@ -9,10 +9,16 @@ const POLL_INTERVAL_MS = 4_000;
 // faster than 10 blocks per POLL_INTERVAL_MS (measured ~5/sec, sometimes more) --
 // one chunk per tick falls further behind forever and never confirms a claim.
 // pollOnce() below loops through consecutive chunks within a single tick until
-// caught up, so throughput is bounded by the RPC's actual response rate, not by
-// the poll interval.
+// caught up, paced with CHUNK_DELAY_MS so it doesn't blow through the free
+// tier's compute-units-per-second cap (confirmed empirically: unpaced looping
+// hit 429s constantly while catching up).
 const MAX_BLOCK_RANGE = 10n;
-const MAX_CHUNKS_PER_TICK = 200; // safety cap: 2000 blocks/tick before yielding to the next interval
+const MAX_CHUNKS_PER_TICK = 30; // ~300 blocks/tick before yielding to the next interval
+const CHUNK_DELAY_MS = 250;
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 function getCursor(): bigint | null {
   const row = db.prepare("SELECT block FROM cursor WHERE key = 'escrow'").get() as
@@ -43,12 +49,22 @@ async function pollOnce() {
 
     const toBlock: bigint = fromBlock + MAX_BLOCK_RANGE < latest ? fromBlock + MAX_BLOCK_RANGE : latest;
 
-    const logs = await publicClient.getLogs({
-      address: config.escrowAddress(),
-      events: remitEscrowAbi.filter((item) => item.type === "event"),
-      fromBlock: fromBlock + 1n,
-      toBlock,
-    });
+    let logs;
+    try {
+      logs = await publicClient.getLogs({
+        address: config.escrowAddress(),
+        events: remitEscrowAbi.filter((item) => item.type === "event"),
+        fromBlock: fromBlock + 1n,
+        toBlock,
+      });
+    } catch (err) {
+      // Rate-limited or transient RPC error mid-catch-up: stop this tick quietly
+      // and resume from the last successfully-saved cursor on the next tick,
+      // rather than throw (which would just log the same noisy error every poll
+      // until caught up).
+      console.warn(`[indexer] chunk fetch failed, will resume next tick:`, (err as Error).message);
+      return;
+    }
 
     for (const log of logs) {
       if (log.transactionHash) processLog({ ...log, transactionHash: log.transactionHash });
@@ -56,6 +72,8 @@ async function pollOnce() {
 
     setCursor(toBlock);
     fromBlock = toBlock;
+
+    if (chunk < MAX_CHUNKS_PER_TICK - 1 && fromBlock < latest) await sleep(CHUNK_DELAY_MS);
   }
 }
 

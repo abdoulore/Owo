@@ -36,7 +36,11 @@ The claim secret lives only in the URL fragment (after `#`), generated client-si
 
 **Decided: Variant B — ZeroDev smart accounts + sponsored paymaster.** Skipped the Particle UA spike: the Universal Accounts prize delta didn't justify the time against a 10-day-to-milestone schedule, and ZeroDev already delivers genuine account abstraction (the theme this hackathon judges on) without it. Targets General track + Arbitrum bounty + Magic bounty.
 
-`send()` and `reclaim()` both require `msg.sender` to be the user's own identity (fund pull, sender check), so they're submitted directly from the frontend as sponsored UserOperations through a ZeroDev Kernel account (owner = the Magic-derived key), while the user is present. `claim()` has no such restriction — recipient is an explicit parameter — so it's the one call the backend relayer submits directly, sponsored, on the recipient's behalf. ZeroDev integration is the next piece of work, not yet started.
+`send()` and `reclaim()` both require `msg.sender` to be the user's own identity (fund pull, sender check), so they're submitted directly from the frontend as sponsored UserOperations through a ZeroDev Kernel account (owner = the Magic-derived key), while the user is present. `claim()` has no such restriction — recipient is an explicit parameter — so it's the one call the backend relayer submits directly, sponsored, on the recipient's behalf.
+
+**Two gotchas hit during setup, in case they resurface:**
+- ZeroDev refuses to sponsor anything until a **Gas Policy** exists on the project dashboard (Project Policy → Sponsor All, scoped to Arbitrum Sepolia). No default policy is created automatically — this is a deliberate anti-abuse default, not a bug.
+- `@zerodev/sdk`'s `KernelEIP1193Provider` extends Node's `EventEmitter`, which Vite externalizes instead of polyfilling in the browser, crashing with `Class extends value undefined is not a constructor or null`. Fixed via `vite-plugin-node-polyfills` scoped to just `events` in `vite.config.ts`.
 
 ## Setup
 
@@ -80,11 +84,11 @@ Deployed and verified on Arbitrum Sepolia:
 
 - [x] Phase 0: monorepo scaffolded, contracts skeleton, API skeleton, web skeleton with routing
 - [x] Phase 0: track decided (Variant B, ZeroDev — see above), Particle spike skipped
-- [ ] Phase 0: Magic Google login working end-to-end (OAuth callback wired, needs a real publishable key to verify)
+- [x] Phase 0: Magic Google login working end-to-end (verified live: real Google account → smart account provisioned)
 - [x] Phase 1: RemitEscrow + MockUSDC written, full Foundry test suite green (14 tests, including fuzz)
 - [x] Phase 1: deployed + verified on Arbitrum Sepolia (addresses above)
-- [x] Phase 2: links/claims/reclaims/history endpoints, relayer (nonce-managed, gas-bump retry), indexer (cursor + backfill) — verified end-to-end against a local Anvil chain: send → fund-verify → claim → indexer status flip → reclaim-verify, all matching on-chain state
-- [~] Phase 2: ZeroDev integration for send()/reclaim() — Kernel account (Magic signer as owner), batched approve+send, reclaim, wired into Send/Home. ECDSA validator derivation confirmed against a real chain; full account creation + sponsored UserOp submission NOT yet verified — needs a real `VITE_ZERODEV_PROJECT_ID` and a publicly reachable RPC (a bare local Anvil lacks the ERC-4337 EntryPoint singleton, and ZeroDev's hosted bundler can't reach localhost anyway)
+- [x] Phase 2: links/claims/reclaims/history endpoints, relayer (nonce-managed, gas-bump retry), indexer (cursor + backfill, paced catch-up loop) — verified end-to-end against both a local Anvil chain and live Arbitrum Sepolia
+- [x] Phase 2: ZeroDev integration for send()/reclaim() — Kernel account (Magic signer as owner), batched approve+send, reclaim, wired into Send/Home. **Verified live end-to-end**: real Google login → real sponsored UserOperation through ZeroDev's paymaster → on-chain send confirmed by independent verification → shareable link → relayer-submitted claim → real USDC payout, all cross-checked against on-chain balances
 - [ ] Phase 3: frontend screens built and polished
 - [ ] Phase 4: cross-chain claim (Variant A only)
 - [ ] Phase 5: hardening, edge cases, copy pass
