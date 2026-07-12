@@ -79,7 +79,7 @@ Deployed addresses (filled in after Phase 1):
 - [x] Phase 1: RemitEscrow + MockUSDC written, full Foundry test suite green (14 tests, including fuzz)
 - [ ] Phase 1: deployed + verified on Arbitrum Sepolia
 - [x] Phase 2: links/claims/reclaims/history endpoints, relayer (nonce-managed, gas-bump retry), indexer (cursor + backfill) — verified end-to-end against a local Anvil chain: send → fund-verify → claim → indexer status flip → reclaim-verify, all matching on-chain state
-- [ ] Phase 2: ZeroDev integration for send()/reclaim() (frontend, sponsored UserOps)
+- [~] Phase 2: ZeroDev integration for send()/reclaim() — Kernel account (Magic signer as owner), batched approve+send, reclaim, wired into Send/Home. ECDSA validator derivation confirmed against a real chain; full account creation + sponsored UserOp submission NOT yet verified — needs a real `VITE_ZERODEV_PROJECT_ID` and a publicly reachable RPC (a bare local Anvil lacks the ERC-4337 EntryPoint singleton, and ZeroDev's hosted bundler can't reach localhost anyway)
 - [ ] Phase 3: frontend screens built and polished
 - [ ] Phase 4: cross-chain claim (Variant A only)
 - [ ] Phase 5: hardening, edge cases, copy pass

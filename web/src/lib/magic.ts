@@ -21,9 +21,19 @@ export async function completeGoogleLogin(): Promise<string | null> {
   return getUserAddress();
 }
 
+/// Magic's own EOA (the smart account's owner/validator key) — NOT the address
+/// that appears on-chain as msg.sender. For that, use getSmartAccountAddress()
+/// in lib/zerodev.ts; links, claims, and history all key off the smart account.
 export async function getUserAddress(): Promise<string | null> {
   const isLoggedIn = await magic.user.isLoggedIn();
   if (!isLoggedIn) return null;
   const info = await magic.user.getInfo();
   return info.wallets.ethereum?.publicAddress ?? null;
+}
+
+export async function getUserEmail(): Promise<string | null> {
+  const isLoggedIn = await magic.user.isLoggedIn();
+  if (!isLoggedIn) return null;
+  const info = await magic.user.getInfo();
+  return info.email;
 }

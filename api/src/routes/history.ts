@@ -10,6 +10,7 @@ function toSummary(row: LinkRow) {
     amount: row.amount,
     note: row.note,
     status: derivedStatus(row),
+    claimIdOnchain: row.claim_id_onchain,
     createdAt: row.created_at,
     fundTx: row.fund_tx,
     claimTx: row.claim_tx,
@@ -28,7 +29,9 @@ historyRouter.get("/:address", (req, res) => {
     .prepare("SELECT * FROM links WHERE lower(recipient) = ? ORDER BY created_at DESC")
     .all(address) as LinkRow[];
 
-  const pending = sent.filter((row) => derivedStatus(row) === "funded" || derivedStatus(row) === "created");
+  // Raw status, not derived: an expired-but-unclaimed link is still "pending" here —
+  // it's what makes it show up with a Cancel (reclaim) button on Home.
+  const pending = sent.filter((row) => row.status === "funded" || row.status === "created");
 
   res.json({
     sent: sent.map(toSummary),

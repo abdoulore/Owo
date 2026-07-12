@@ -24,6 +24,7 @@ export interface HistoryEntry {
   amount: string;
   note: string | null;
   status: string;
+  claimIdOnchain: number | null;
   createdAt: number;
   fundTx: string | null;
   claimTx: string | null;
