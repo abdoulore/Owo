@@ -42,22 +42,25 @@ The claim secret lives only in the URL fragment (after `#`), generated client-si
 
 Requires Node 20+, [Foundry](https://book.getfoundry.sh/getting-started/installation).
 
+Each package reads its own `.env` — Foundry and Vite only look in their own directory, so there's no single shared env file across the three. The root `.env.example` is a full reference of every key used anywhere in the stack; each package's own `.env.example` is the subset that package actually reads.
+
 ```bash
 # Contracts
 cd contracts
 forge install
 forge test
+cp .env.example .env      # fill in RELAYER_PRIVATE_KEY, ARBITRUM_SEPOLIA_RPC, ARBISCAN_API_KEY
 
 # API
 cd ../api
 npm install
-cp ../.env.example .env   # fill in RELAYER_PRIVATE_KEY, RPC URL, etc.
+cp .env.example .env      # fill in the same RELAYER_PRIVATE_KEY/RPC, plus ESCROW_ADDRESS/USDC_ADDRESS after deploy
 npm run dev
 
 # Web
 cd ../web
 npm install
-cp .env.example .env      # fill in VITE_MAGIC_PUBLISHABLE_KEY
+cp .env.example .env      # fill in VITE_MAGIC_PUBLISHABLE_KEY, VITE_ZERODEV_PROJECT_ID, chain config
 npm run dev
 ```
 
