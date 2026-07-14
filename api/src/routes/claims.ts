@@ -50,6 +50,23 @@ claimsRouter.post("/", async (req, res) => {
     return;
   }
 
+  // Lock the link to the first recipient that submits a valid claim. This runs only
+  // after the secret is validated, so a wrong secret can't grief-lock a link. It
+  // closes the reverted-calldata window: if a claim reverts and leaks the secret, an
+  // attacker's follow-up claim to a different address is refused here, because the
+  // honest recipient's earlier attempt already locked the link to them. Atomic single
+  // statement: succeeds only if unlocked or already locked to this same recipient.
+  const lock = db
+    .prepare(
+      `UPDATE links SET claim_locked_to = ?
+       WHERE id = ? AND (claim_locked_to IS NULL OR lower(claim_locked_to) = lower(?))`
+    )
+    .run(recipient, linkId, recipient);
+  if (lock.changes === 0) {
+    res.status(409).json({ error: "This link is already being claimed." });
+    return;
+  }
+
   const now = Date.now();
   const insert = db
     .prepare(

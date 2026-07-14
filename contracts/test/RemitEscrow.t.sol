@@ -20,7 +20,9 @@ contract RemitEscrowTest is Test {
     uint256 expiry;
 
     function setUp() public {
-        escrow = new RemitEscrow();
+        // This test contract is the relayer, so claim() calls made directly from the
+        // test (msg.sender == address(this)) pass the onlyRelayer gate.
+        escrow = new RemitEscrow(address(this));
         usdc = new MockUSDC();
         claimHash = keccak256(secret);
         expiry = block.timestamp + 72 hours;
@@ -46,6 +48,16 @@ contract RemitEscrowTest is Test {
 
         (,,,,, RemitEscrow.Status status) = escrow.transfers(claimId);
         assertEq(uint8(status), uint8(RemitEscrow.Status.Claimed));
+    }
+
+    function test_ClaimByNonRelayerReverts() public {
+        uint256 claimId = _send();
+
+        // A stranger who somehow learned the secret (e.g. from a reverted claim's
+        // calldata) still cannot spend it: claim() is gated to the relayer.
+        vm.prank(stranger);
+        vm.expectRevert(RemitEscrow.NotRelayer.selector);
+        escrow.claim(claimId, secret, recipient);
     }
 
     function test_WrongSecretReverts() public {

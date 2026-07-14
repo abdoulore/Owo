@@ -38,7 +38,14 @@ The crypto machinery is real; it is just hidden from the user.
 
 ## What makes it robust
 
-**Security model.** Possession of the link is the authorization, like a check made out to cash. `claim()` lets the secret-holder pick the recipient by design. Revealing the secret on-chain cannot be front-run on Arbitrum (sequencer ordering, no public mempool), and only the app's relayer submits claims. The contract rejects zero amounts and the hash of an empty secret, so a client bug cannot mint claimable-by-anyone links.
+**Security model.** Possession of the link is the authorization, like a check made out to cash: `claim()` lets the secret-holder pick the recipient by design. The contract rejects zero amounts and the hash of an empty secret, so a client bug cannot mint claimable-by-anyone links. Arbitrum's sequencer exposes no public mempool, so a *pending* claim cannot be front-run the usual way.
+
+**The reverted-calldata exposure, and how it is closed.** `claim()` reveals the secret in transaction calldata, so a reverted claim (out of gas, or a race) would leave that secret readable on-chain while the link is still `Pending`, and whoever read it could redirect the funds before the honest retry landed. Two changes close that window:
+
+- **`claim()` is gated to the relayer on-chain.** It reverts for any other caller (`NotRelayer`), so a leaked secret cannot be spent by calling the contract directly.
+- **The API locks each link to the first recipient that submits a valid claim.** The secret only becomes public *after* a claim attempt, and that attempt has already locked the link to the honest recipient, so a follow-up claim carrying the leaked secret to a different address is refused.
+
+Together these mean a leaked secret cannot be redirected. What remains is the intended bearer-token property of the check-to-cash model: whoever the sender shares the raw link with can claim it. The contract also rejects zero amounts and the hash of an empty secret, so a client bug cannot mint claimable-by-anyone links.
 
 **Crash recovery.** Claim secrets are never written to disk, so a relayer restart mid-claim cannot replay the transaction from the queue. Recovery is client-driven instead: the recipient taps Claim again, which is safe because the contract's Pending check makes resubmission idempotent. Funding is crash-proof on the other side too. If the sender's browser dies after the on-chain send but before notifying the API, the indexer independently matches the `Sent` event by claim hash and marks the link funded.
 
@@ -62,7 +69,7 @@ The crypto machinery is real; it is just hidden from the user.
 
 Deployed and verified on Arbitrum Sepolia:
 
-- `RemitEscrow`: [`0x00d218141984B2e030CDBaA30C86916AD0633e29`](https://sepolia.arbiscan.io/address/0x00d218141984B2e030CDBaA30C86916AD0633e29)
+- `RemitEscrow`: [`0xF9C4011F7CcC6C51BC9911887A65ce84D9d63192`](https://sepolia.arbiscan.io/address/0xF9C4011F7CcC6C51BC9911887A65ce84D9d63192)
 - `MockUSDC`: [`0xd888A21708fCe03889B5275544831fb2179E6d9a`](https://sepolia.arbiscan.io/address/0xd888A21708fCe03889B5275544831fb2179E6d9a)
 
 ## Run it locally

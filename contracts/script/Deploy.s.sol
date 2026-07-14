@@ -10,6 +10,9 @@ import {MockUSDC} from "../src/MockUSDC.sol";
 contract Deploy is Script {
     function run() external {
         uint256 deployerKey = vm.envUint("RELAYER_PRIVATE_KEY");
+        // The deployer key is also the relayer key, so the deployer address is the
+        // relayer that claim() is gated to.
+        address relayer = vm.addr(deployerKey);
         vm.startBroadcast(deployerKey);
 
         address usdc = vm.envOr("USDC_ADDRESS", address(0));
@@ -18,7 +21,7 @@ contract Deploy is Script {
             console.log("MockUSDC deployed:", usdc);
         }
 
-        RemitEscrow escrow = new RemitEscrow();
+        RemitEscrow escrow = new RemitEscrow(relayer);
         console.log("RemitEscrow deployed:", address(escrow));
 
         vm.stopBroadcast();

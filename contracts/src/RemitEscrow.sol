@@ -27,6 +27,11 @@ contract RemitEscrow is ReentrancyGuard {
     mapping(uint256 => Transfer) public transfers;
     uint256 public nextClaimId;
 
+    /// @notice The only address allowed to submit claim(). Gating claims to the app's
+    /// relayer closes the reverted-calldata window: even if a secret leaks from a failed
+    /// claim's calldata, no one can spend it by calling this contract directly.
+    address public immutable relayer;
+
     event Sent(
         uint256 indexed claimId,
         address indexed sender,
@@ -46,10 +51,15 @@ contract RemitEscrow is ReentrancyGuard {
     error NotSender();
     error ZeroAmount();
     error InvalidClaimHash();
+    error NotRelayer();
 
-    /// @dev keccak256("") — rejected so a client bug that hashes an empty secret cannot
+    /// @dev keccak256("") is rejected so a client bug that hashes an empty secret cannot
     /// create a transfer claimable by anyone who tries the empty string.
     bytes32 private constant EMPTY_SECRET_HASH = keccak256("");
+
+    constructor(address relayer_) {
+        relayer = relayer_;
+    }
 
     function send(address token, uint256 amount, bytes32 claimHash, uint256 expiry)
         external
@@ -74,11 +84,16 @@ contract RemitEscrow is ReentrancyGuard {
         emit Sent(claimId, msg.sender, token, amount, claimHash, expiry);
     }
 
-    /// @notice Anyone holding the secret can direct funds to any recipient. This is the
-    /// hash-lock model: possession of the link IS the authorization. Revealing the secret
-    /// on-chain cannot be front-run to steal funds on Arbitrum, where the sequencer gives
-    /// no public mempool, and in practice only the app's relayer submits this call.
+    /// @notice Submits a claim on the recipient's behalf. The secret is the authorization
+    /// (possession of the link, like a check made out to cash), and the recipient is an
+    /// explicit parameter. Gated to `relayer`: this call carries the secret in calldata, so
+    /// a reverted claim leaves it readable on-chain while the transfer is still Pending, and
+    /// gating closes that window (a leaked secret cannot be spent by calling this contract
+    /// directly). The app's relayer additionally locks each link to the first recipient that
+    /// attempts a claim, so it will not resubmit a leaked secret to a different recipient.
     function claim(uint256 claimId, bytes calldata secret, address recipient) external nonReentrant {
+        if (msg.sender != relayer) revert NotRelayer();
+
         Transfer storage t = transfers[claimId];
 
         if (t.status != Status.Pending) revert NotPending();
