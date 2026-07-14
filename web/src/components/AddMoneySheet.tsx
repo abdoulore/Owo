@@ -73,7 +73,7 @@ export function AddMoneySheet({ open, onClose, onAdded, onSessionExpired }: AddM
               Add money
             </h2>
 
-            <div className="my-6 text-center font-mono text-5xl font-medium text-zinc-900 dark:text-zinc-50">
+            <div className="my-6 text-center text-5xl font-medium tabular-nums text-zinc-900 dark:text-zinc-50">
               ${TOPUP_USD}
             </div>
 

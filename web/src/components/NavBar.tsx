@@ -9,8 +9,8 @@ const items = [
 
 export function NavBar() {
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-10 border-t border-zinc-200 bg-zinc-50/90 backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/90">
-      <div className="mx-auto flex max-w-md items-center justify-around px-2 py-2">
+    <nav className="shrink-0 border-t border-zinc-200 bg-zinc-50/90 backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/90">
+      <div className="flex items-center justify-around px-2 py-2">
         {items.map(({ to, label, icon: Icon }) => (
           <NavLink
             key={to}

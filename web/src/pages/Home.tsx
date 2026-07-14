@@ -191,7 +191,7 @@ export function Home() {
               </div>
 
               <div className="flex shrink-0 flex-col items-end gap-1">
-                <span className="font-mono text-sm font-medium text-zinc-900 dark:text-zinc-50">
+                <span className="text-sm font-medium tabular-nums text-zinc-900 dark:text-zinc-50">
                   {entry.direction === "in" ? "+" : "-"}${formatUsdcAmount(BigInt(entry.amount))}
                 </span>
                 {entry.direction === "out" && entry.status === "expired" && (
