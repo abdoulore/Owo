@@ -19,13 +19,13 @@ _Screenshots: to be added._
 
 ## How it works
 
-1. Sender logs in with Google and taps **Add test money** to fund a fresh account (see below), then enters an amount and gets a shareable link.
+1. Sender logs in with Google and taps **Add money** to fund a fresh account (see below), then enters an amount and gets a shareable link.
 2. Recipient opens the link, logs in with their own Google account, taps Claim.
 3. Funds move on Arbitrum via a smart contract escrow. A relayer sponsors all gas.
 
 Neither party ever sees a wallet address, seed phrase, gas fee, or chain name. The claim secret lives only in the URL fragment (after `#`), generated in the browser. It is never sent to or stored on the server, except transiently when the recipient submits a claim.
 
-**Getting test money.** This is a testnet demo with no fiat on-ramp, so a new account starts at $0. Tapping **Add test money** on the home screen calls the backend, which has the relayer mint test USDC (`MockUSDC`, a mintable stand-in for real USDC) straight to the user's account. It is capped per account to prevent spam and clearly labeled as test money, standing in for what would be a real deposit or on-ramp in production.
+**Getting money.** This is a testnet demo with no fiat on-ramp, so a new account starts at $0. Tapping **Add money** opens an add-cash sheet with a demo card, styled like the rest of the app, with no crypto vocabulary. Under the hood it calls the backend, which has the relayer mint test USDC (`MockUSDC`, a mintable stand-in for real USDC) straight to the account, capped per account to prevent spam. The demo card stands in for what would be a real card or on-ramp in production.
 
 
 ## Under the hood

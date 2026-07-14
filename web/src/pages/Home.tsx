@@ -14,8 +14,9 @@ import { isLoggedIn, loginWithGoogle } from "../lib/magic";
 import { Screen } from "../components/Screen";
 import { AmountDisplay } from "../components/AmountDisplay";
 import { StatusPill } from "../components/StatusPill";
+import { AddMoneySheet } from "../components/AddMoneySheet";
 
-// Below this, offer the test-money top-up (matches the relayer's faucet cap).
+// Below this, offer the top-up (matches the backend faucet's per-account cap).
 const LOW_BALANCE = 50_000_000n; // 50 USDC (6 decimals)
 
 type ActivityRow = HistoryEntry & { direction: "in" | "out" };
@@ -31,7 +32,7 @@ export function Home() {
   const [reclaimingId, setReclaimingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [sessionExpired, setSessionExpired] = useState(false);
-  const [funding, setFunding] = useState(false);
+  const [addOpen, setAddOpen] = useState(false);
 
   async function refresh() {
     const address = await getSmartAccountAddress();
@@ -62,24 +63,6 @@ export function Home() {
       .catch((err) => setError((err as Error).message))
       .finally(() => setLoading(false));
   }, []);
-
-  async function handleAddMoney() {
-    if (!(await isLoggedIn())) {
-      setSessionExpired(true);
-      return;
-    }
-    setFunding(true);
-    setError(null);
-    try {
-      const address = await getSmartAccountAddress();
-      await api.faucet(address);
-      await refresh();
-    } catch {
-      setError("Couldn't add test money. Try again.");
-    } finally {
-      setFunding(false);
-    }
-  }
 
   async function handleCancel(entry: ActivityRow) {
     if (entry.claimIdOnchain === null) return;
@@ -117,15 +100,21 @@ export function Home() {
         {!loading && (balance ?? 0n) < LOW_BALANCE && (
           <button
             type="button"
-            disabled={funding}
-            onClick={handleAddMoney}
-            className="inline-flex items-center gap-1.5 rounded-full bg-zinc-100 px-4 py-2 text-sm font-medium text-zinc-700 transition-transform active:scale-[0.98] disabled:opacity-50 dark:bg-zinc-900 dark:text-zinc-200"
+            onClick={() => setAddOpen(true)}
+            className="inline-flex items-center gap-1.5 rounded-full bg-zinc-100 px-4 py-2 text-sm font-medium text-zinc-700 transition-transform active:scale-[0.98] dark:bg-zinc-900 dark:text-zinc-200"
           >
             <Plus size={16} weight="bold" />
-            {funding ? "Adding…" : "Add test money"}
+            Add money
           </button>
         )}
       </div>
+
+      <AddMoneySheet
+        open={addOpen}
+        onClose={() => setAddOpen(false)}
+        onAdded={refresh}
+        onSessionExpired={() => setSessionExpired(true)}
+      />
 
       {sessionExpired && (
         <div className="mb-4 flex items-center justify-between gap-2 text-sm text-red-600 dark:text-red-400">
