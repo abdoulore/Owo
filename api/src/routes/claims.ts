@@ -6,12 +6,16 @@ import { submitClaim } from "../relayer.js";
 export const claimsRouter = Router();
 
 claimsRouter.post("/", async (req, res) => {
-  const { linkId, recipient, secret } = req.body ?? {};
+  const { linkId, recipient, secret, recipientDisplay } = req.body ?? {};
 
   if (typeof linkId !== "string" || typeof recipient !== "string" || typeof secret !== "string") {
     res.status(400).json({ error: "linkId, recipient, and secret are required" });
     return;
   }
+  const displayName =
+    typeof recipientDisplay === "string" && recipientDisplay.trim()
+      ? recipientDisplay.trim().slice(0, 40)
+      : null;
   if (!/^0x[0-9a-fA-F]+$/.test(secret)) {
     res.status(400).json({ error: "secret must be a hex string" });
     return;
@@ -58,10 +62,10 @@ claimsRouter.post("/", async (req, res) => {
   // statement: succeeds only if unlocked or already locked to this same recipient.
   const lock = db
     .prepare(
-      `UPDATE links SET claim_locked_to = ?
+      `UPDATE links SET claim_locked_to = ?, recipient_display = ?
        WHERE id = ? AND (claim_locked_to IS NULL OR lower(claim_locked_to) = lower(?))`
     )
-    .run(recipient, linkId, recipient);
+    .run(recipient, displayName, linkId, recipient);
   if (lock.changes === 0) {
     res.status(409).json({ error: "This link is already being claimed." });
     return;

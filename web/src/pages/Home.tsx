@@ -1,23 +1,19 @@
 import { useEffect, useState } from "react";
-import {
-  ArrowDown,
-  ArrowUp,
-  PaperPlaneTilt,
-  Plus,
-  WarningCircle,
-} from "@phosphor-icons/react";
+import { useNavigate } from "react-router-dom";
+import { motion, useReducedMotion } from "motion/react";
+import { ArrowDown, ArrowUp, PaperPlaneTilt, Plus, WarningCircle } from "@phosphor-icons/react";
 import { api, type HistoryEntry } from "../lib/api";
-import { formatUsdcAmount } from "../lib/money";
+import { formatMoney } from "../lib/money";
+import { counterparty } from "../lib/rows";
+import { useCurrency } from "../lib/currency";
 import { getSmartAccountAddress, reclaimPayment } from "../lib/zerodev";
 import { getUsdcBalance } from "../lib/balance";
-import { isLoggedIn, loginWithGoogle } from "../lib/magic";
+import { getUserEmail, isLoggedIn, loginWithGoogle } from "../lib/magic";
+import { displayNameFromEmail } from "../lib/identity";
 import { Screen } from "../components/Screen";
-import { AmountDisplay } from "../components/AmountDisplay";
 import { StatusPill } from "../components/StatusPill";
+import { Avatar } from "../components/Avatar";
 import { AddMoneySheet } from "../components/AddMoneySheet";
-
-// Below this, offer the top-up (matches the backend faucet's per-account cap).
-const LOW_BALANCE = 50_000_000n; // 50 USDC (6 decimals)
 
 type ActivityRow = HistoryEntry & { direction: "in" | "out" };
 
@@ -26,6 +22,10 @@ function formatDate(ms: number): string {
 }
 
 export function Home() {
+  const navigate = useNavigate();
+  const reduceMotion = useReducedMotion();
+  const { naira, setNaira } = useCurrency();
+  const [name, setName] = useState("there");
   const [balance, setBalance] = useState<bigint | null>(null);
   const [activity, setActivity] = useState<ActivityRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -35,7 +35,8 @@ export function Home() {
   const [addOpen, setAddOpen] = useState(false);
 
   async function refresh() {
-    const address = await getSmartAccountAddress();
+    const [address, email] = await Promise.all([getSmartAccountAddress(), getUserEmail()]);
+    setName(displayNameFromEmail(email));
     // allSettled, not all: the balance (on-chain RPC) and activity (our API) are
     // independent -- one being briefly down shouldn't blank out the other.
     const [balanceResult, historyResult] = await Promise.allSettled([
@@ -54,7 +55,12 @@ export function Home() {
       setActivity(merged);
     }
 
-    const failure = balanceResult.status === "rejected" ? balanceResult.reason : historyResult.status === "rejected" ? historyResult.reason : null;
+    const failure =
+      balanceResult.status === "rejected"
+        ? balanceResult.reason
+        : historyResult.status === "rejected"
+          ? historyResult.reason
+          : null;
     setError(failure ? "Couldn't load everything." : null);
   }
 
@@ -66,17 +72,12 @@ export function Home() {
 
   async function handleCancel(entry: ActivityRow) {
     if (entry.claimIdOnchain === null) return;
-
-    // Session may have lapsed since the page loaded. Catch it here rather than
-    // letting the ZeroDev reclaim call fail with a confusing error.
     if (!(await isLoggedIn())) {
       setSessionExpired(true);
       return;
     }
-
     setReclaimingId(entry.linkId);
     setError(null);
-
     try {
       const { reclaimTx } = await reclaimPayment(entry.claimIdOnchain);
       await api.markReclaimed({ linkId: entry.linkId, reclaimTx });
@@ -88,26 +89,67 @@ export function Home() {
     }
   }
 
+  const bal = balance ?? 0n;
+
   return (
     <Screen withNav>
-      <div className="flex flex-col items-center gap-3 py-6">
-        <p className="text-sm text-zinc-400 dark:text-zinc-500">Balance</p>
+      <header className="flex items-center justify-between pb-2">
+        <div>
+          <p className="text-sm text-muted">Welcome back</p>
+          <p className="text-xl font-semibold text-ink">Hi, {name}</p>
+        </div>
+        <Avatar name={name} size={44} />
+      </header>
+
+      <motion.section
+        initial={reduceMotion ? false : { opacity: 0, y: 14 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+        className="my-4 rounded-[1.5rem] bg-accent px-6 py-7 text-white shadow-lg shadow-accent/20"
+      >
+        <div className="flex items-center justify-between">
+          <p className="text-sm text-white/80">Balance</p>
+          <div className="flex rounded-full bg-white/15 p-0.5 text-xs font-medium">
+            <button
+              type="button"
+              onClick={() => setNaira(false)}
+              className={`rounded-full px-2.5 py-1 ${naira ? "text-white/70" : "bg-white/90 text-accent"}`}
+            >
+              $
+            </button>
+            <button
+              type="button"
+              onClick={() => setNaira(true)}
+              className={`rounded-full px-2.5 py-1 ${naira ? "bg-white/90 text-accent" : "text-white/70"}`}
+            >
+              ₦
+            </button>
+          </div>
+        </div>
         {loading ? (
-          <div className="h-12 w-32 animate-pulse rounded-full bg-zinc-100 dark:bg-zinc-900" />
+          <div className="mt-2 h-11 w-40 animate-pulse rounded-full bg-white/20" />
         ) : (
-          <AmountDisplay value={formatUsdcAmount(balance ?? 0n)} />
+          <p className="mt-1 text-5xl font-semibold tabular-nums">{formatMoney(bal, naira)}</p>
         )}
-        {!loading && (balance ?? 0n) < LOW_BALANCE && (
+        <div className="mt-5 flex gap-3">
+          <button
+            type="button"
+            onClick={() => navigate("/send")}
+            className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-white py-2.5 text-sm font-medium text-accent transition-transform active:scale-[0.98]"
+          >
+            <PaperPlaneTilt size={16} weight="bold" />
+            Send
+          </button>
           <button
             type="button"
             onClick={() => setAddOpen(true)}
-            className="inline-flex items-center gap-1.5 rounded-full bg-zinc-100 px-4 py-2 text-sm font-medium text-zinc-700 transition-transform active:scale-[0.98] dark:bg-zinc-900 dark:text-zinc-200"
+            className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-white/15 py-2.5 text-sm font-medium text-white transition-transform active:scale-[0.98]"
           >
             <Plus size={16} weight="bold" />
             Add money
           </button>
-        )}
-      </div>
+        </div>
+      </motion.section>
 
       <AddMoneySheet
         open={addOpen}
@@ -117,7 +159,7 @@ export function Home() {
       />
 
       {sessionExpired && (
-        <div className="mb-4 flex items-center justify-between gap-2 text-sm text-red-600 dark:text-red-400">
+        <div className="mb-4 flex items-center justify-between gap-2 text-sm text-red-600">
           <span>Your session expired.</span>
           <button
             type="button"
@@ -133,79 +175,80 @@ export function Home() {
       )}
 
       {error && !sessionExpired && (
-        <div className="mb-4 flex items-center gap-2 text-sm text-red-600 dark:text-red-400">
+        <div className="mb-4 flex items-center gap-2 text-sm text-red-600">
           <WarningCircle size={18} weight="bold" />
           <span>{error}</span>
         </div>
       )}
 
-      <h2 className="mb-2 text-sm font-medium text-zinc-400 dark:text-zinc-500">Activity</h2>
+      <h2 className="mb-1 mt-2 text-sm font-medium text-muted">Activity</h2>
 
       {loading ? (
         <div className="flex flex-col gap-4 py-2">
           {[0, 1, 2].map((i) => (
             <div key={i} className="flex items-center gap-3">
-              <div className="size-10 shrink-0 animate-pulse rounded-full bg-zinc-100 dark:bg-zinc-900" />
+              <div className="size-10 shrink-0 animate-pulse rounded-full bg-sand" />
               <div className="flex-1 space-y-2">
-                <div className="h-3 w-24 animate-pulse rounded-full bg-zinc-100 dark:bg-zinc-900" />
-                <div className="h-3 w-16 animate-pulse rounded-full bg-zinc-100 dark:bg-zinc-900" />
+                <div className="h-3 w-24 animate-pulse rounded-full bg-sand" />
+                <div className="h-3 w-16 animate-pulse rounded-full bg-sand" />
               </div>
             </div>
           ))}
         </div>
       ) : activity.length === 0 ? (
-        <div className="flex flex-1 flex-col items-center justify-center gap-3 py-16 text-center">
-          <PaperPlaneTilt className="text-zinc-300 dark:text-zinc-700" size={36} />
-          <p className="text-sm text-zinc-400 dark:text-zinc-500">
-            No activity yet. Send your first payment.
-          </p>
+        <div className="flex flex-1 flex-col items-center justify-center gap-3 py-12 text-center">
+          <PaperPlaneTilt className="text-faint" size={36} />
+          <p className="text-sm text-muted">Your payments will show up here.</p>
         </div>
       ) : (
-        <ul className="divide-y divide-zinc-100 dark:divide-zinc-900">
-          {activity.map((entry) => (
-            <li key={entry.linkId} className="flex items-center gap-3 py-4">
+        <ul className="divide-y divide-line">
+          {activity.map((entry, i) => (
+            <motion.li
+              key={entry.linkId}
+              initial={reduceMotion ? false : { opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: Math.min(i * 0.04, 0.3), duration: 0.35 }}
+              className="flex items-center gap-3 py-4"
+            >
               <div
                 className={`flex size-10 shrink-0 items-center justify-center rounded-full ${
-                  entry.direction === "in"
-                    ? "bg-accent/10 dark:bg-accent-dark/10"
-                    : "bg-zinc-100 dark:bg-zinc-900"
+                  entry.direction === "in" ? "bg-accent-soft" : "bg-sand"
                 }`}
               >
                 {entry.direction === "in" ? (
-                  <ArrowDown className="text-accent dark:text-accent-dark" size={18} />
+                  <ArrowDown className="text-accent" size={18} />
                 ) : (
-                  <ArrowUp className="text-zinc-500 dark:text-zinc-400" size={18} />
+                  <ArrowUp className="text-muted" size={18} />
                 )}
               </div>
 
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium text-zinc-900 dark:text-zinc-50">
-                  {entry.note || (entry.direction === "in" ? "Received" : "Sent")}
-                </p>
+                <p className="truncate text-sm font-medium text-ink">{counterparty(entry)}</p>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-zinc-400 dark:text-zinc-500">
-                    {formatDate(entry.createdAt)}
+                  <span className="truncate text-xs text-faint">
+                    {entry.note || formatDate(entry.createdAt)}
                   </span>
-                  <StatusPill status={entry.status} />
+                  {entry.direction === "out" && <StatusPill status={entry.status} />}
                 </div>
               </div>
 
               <div className="flex shrink-0 flex-col items-end gap-1">
-                <span className="text-sm font-medium tabular-nums text-zinc-900 dark:text-zinc-50">
-                  {entry.direction === "in" ? "+" : "-"}${formatUsdcAmount(BigInt(entry.amount))}
+                <span className="text-sm font-medium tabular-nums text-ink">
+                  {entry.direction === "in" ? "+" : "-"}
+                  {formatMoney(BigInt(entry.amount), naira)}
                 </span>
                 {entry.direction === "out" && entry.status === "expired" && (
                   <button
                     type="button"
                     disabled={reclaimingId === entry.linkId}
                     onClick={() => handleCancel(entry)}
-                    className="text-xs font-medium text-accent disabled:opacity-40 dark:text-accent-dark"
+                    className="text-xs font-medium text-accent disabled:opacity-40"
                   >
                     {reclaimingId === entry.linkId ? "Cancelling…" : "Cancel"}
                   </button>
                 )}
               </div>
-            </li>
+            </motion.li>
           ))}
         </ul>
       )}

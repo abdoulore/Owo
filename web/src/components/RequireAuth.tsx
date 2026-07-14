@@ -4,7 +4,7 @@ import { CircleNotch } from "@phosphor-icons/react";
 import { isLoggedIn } from "../lib/magic";
 import { Screen } from "./Screen";
 
-// Guards /home, /send, /receipts: covers both direct navigation without ever
+// Guards /home, /send, /activity: covers both direct navigation without ever
 // logging in, and a Magic session that expired since the last page load.
 export function RequireAuth({ children }: { children: ReactNode }) {
   const [checked, setChecked] = useState(false);
@@ -26,7 +26,7 @@ export function RequireAuth({ children }: { children: ReactNode }) {
     return (
       <Screen>
         <div className="flex flex-1 items-center justify-center">
-          <CircleNotch className="animate-spin text-zinc-300 dark:text-zinc-700" size={28} />
+          <CircleNotch className="animate-spin text-faint" size={28} />
         </div>
       </Screen>
     );

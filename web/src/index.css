@@ -2,45 +2,51 @@
 @import "@fontsource-variable/geist";
 @import "@fontsource-variable/geist-mono";
 
+/* Committed to one warm light theme (see design critique): dark mode is neutralized
+   by pointing the dark variant at a class we never add, so a judge's OS dark setting
+   can't flip the app. Every screen is warm light, consistently. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   --font-sans: "Geist Variable", system-ui, sans-serif;
   --font-mono: "Geist Mono Variable", ui-monospace, monospace;
 
-  /* Single accent, locked across the whole app -- see design-taste-frontend
-     Section 4.2 (Color Consistency Lock). Emerald reads as "money moving",
-     without reaching for the AI-purple default. Two shades, not two colors:
-     emerald-600 clears 4.5:1 with white text on the light bg; emerald-500
-     clears it with near-black text on the dark bg. */
-  --color-accent: #059669;
-  --color-accent-dark: #10b981;
+  /* Warm neutral ramp: ivory paper to warm near-black ink. Not cool zinc, not the
+     dark+teal crypto default. Money between family should feel warm and human. */
+  --color-cream: #fbf7f1; /* page background */
+  --color-sand: #f2ebe0; /* surfaces: cards, secondary buttons, inputs */
+  --color-sanddeep: #e9dccb; /* pressed / avatar / icon chips */
+  --color-line: #e7dbca; /* borders, dividers */
+  --color-ink: #2a2420; /* primary text (very high contrast on cream) */
+  --color-muted: #6a5c4e; /* secondary text, ~5:1 on cream, passes AA */
+  --color-faint: #9a8b79; /* tertiary, large/graphic use only */
 
-  --radius-card: 1.25rem;
+  /* Persimmon accent. --accent passes AA (~5:1) with white button text and as text
+     on cream; --accent-bright is decorative only (icons on tinted chips, confetti). */
+  --color-accent: #c8471f;
+  --color-accent-bright: #e2623c;
+  --color-accent-soft: #f7e6dc;
+
+  --radius-card: 1.5rem;
 }
 
 html {
-  color-scheme: light dark;
+  color-scheme: light;
 }
 
 body {
-  @apply bg-zinc-50 text-zinc-900 antialiased;
-  @apply dark:bg-zinc-950 dark:text-zinc-50;
+  @apply bg-cream text-ink antialiased;
 }
 
-/* Desktop backdrop behind the phone frame. On mobile the app is full-bleed and
-   this never shows; on a wide viewport it turns the surrounding area from a flat
-   void into a soft, faintly accent-tinted field so the frame reads as intentional. */
-.app-backdrop {
-  @apply bg-zinc-100 dark:bg-black;
-  background-image: radial-gradient(120% 70% at 50% 0%, rgba(5, 150, 105, 0.07), transparent 60%);
-}
-@media (prefers-color-scheme: dark) {
-  .app-backdrop {
-    background-image: radial-gradient(120% 70% at 50% 0%, rgba(16, 185, 129, 0.08), transparent 60%);
-  }
-}
-
-/* Locked shape system: buttons are pill-shaped, every other container
-   (cards, inputs, sheets) uses --radius-card. No mixed radii scales. */
+/* Locked shape system: buttons are pill-shaped, every other container uses the card radius. */
 button {
   @apply rounded-full;
+}
+
+/* Desktop backdrop behind the phone frame. Full-bleed on mobile (never seen); on a
+   wide viewport it turns the surround from a flat void into a soft warm field so the
+   frame reads as an intentional device. */
+.app-backdrop {
+  background-color: #efe6d8;
+  background-image: radial-gradient(120% 70% at 50% 0%, rgba(200, 71, 31, 0.08), transparent 60%);
 }

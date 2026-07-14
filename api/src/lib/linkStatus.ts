@@ -7,6 +7,8 @@ export interface LinkRow {
   sender: string;
   sender_display: string | null;
   recipient: string | null;
+  recipient_display: string | null;
+  claim_locked_to: string | null;
   status: string;
   fund_tx: string | null;
   claim_tx: string | null;

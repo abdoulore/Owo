@@ -7,11 +7,9 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const variants = {
-  primary:
-    "bg-accent text-white dark:bg-accent-dark dark:text-zinc-950 disabled:bg-zinc-300 dark:disabled:bg-zinc-700 dark:disabled:text-zinc-500",
-  secondary:
-    "bg-zinc-100 text-zinc-900 dark:bg-zinc-900 dark:text-zinc-50 disabled:opacity-40",
-  ghost: "bg-transparent text-accent dark:text-accent-dark disabled:opacity-40",
+  primary: "bg-accent text-white shadow-sm shadow-accent/25 disabled:bg-sanddeep disabled:text-faint disabled:shadow-none",
+  secondary: "bg-sand text-ink disabled:opacity-40",
+  ghost: "bg-transparent text-accent disabled:opacity-40",
 };
 
 export function Button({

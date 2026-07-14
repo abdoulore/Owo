@@ -25,6 +25,7 @@ db.exec(`
     sender TEXT NOT NULL,
     sender_display TEXT,
     recipient TEXT,
+    recipient_display TEXT,
     claim_locked_to TEXT,
     status TEXT NOT NULL DEFAULT 'created',
     fund_tx TEXT,
@@ -61,6 +62,6 @@ db.exec(`
 // only adds it to fresh DBs). ALTER fails if the column is already present, so guard
 // on the live schema. This is what locks a link to the first recipient that claims it.
 const linkColumns = db.prepare("PRAGMA table_info(links)").all() as { name: string }[];
-if (!linkColumns.some((c) => c.name === "claim_locked_to")) {
-  db.exec("ALTER TABLE links ADD COLUMN claim_locked_to TEXT");
-}
+const hasColumn = (name: string) => linkColumns.some((c) => c.name === name);
+if (!hasColumn("claim_locked_to")) db.exec("ALTER TABLE links ADD COLUMN claim_locked_to TEXT");
+if (!hasColumn("recipient_display")) db.exec("ALTER TABLE links ADD COLUMN recipient_display TEXT");

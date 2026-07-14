@@ -1,8 +1,8 @@
 import confetti from "canvas-confetti";
 
-// Kept to the brand accent plus a warm gold for "money" sparkle -- a one-off
-// celebration burst is the sanctioned exception to the single-accent rule.
-const COLORS = ["#059669", "#10b981", "#f4b740", "#ffffff"];
+// Warm celebratory mix: the persimmon accent, a lighter coral, a gold sparkle, and
+// cream -- a one-off burst is the sanctioned exception to the single-accent rule.
+const COLORS = ["#c8471f", "#e2623c", "#f0a830", "#fbf7f1"];
 
 /// Fires a two-sided confetti cannon plus a center burst. This is the claim
 /// success moment -- the spec calls it "the demo money shot" and says to

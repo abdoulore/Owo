@@ -1,8 +1,8 @@
 export function AmountDisplay({ value, size = "lg" }: { value: string; size?: "lg" | "md" }) {
   return (
     <span
-      className={`tabular-nums font-medium text-zinc-900 dark:text-zinc-50 ${
-        size === "lg" ? "text-5xl" : "text-2xl"
+      className={`tabular-nums font-medium text-ink ${
+        size === "lg" ? "text-6xl" : "text-2xl"
       }`}
     >
       ${value}

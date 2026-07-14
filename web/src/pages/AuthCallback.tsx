@@ -34,10 +34,8 @@ export function AuthCallback() {
     return (
       <Screen>
         <div className="flex flex-1 flex-col items-center justify-center gap-4 text-center">
-          <WarningCircle className="text-zinc-400 dark:text-zinc-500" size={40} />
-          <p className="text-base text-zinc-600 dark:text-zinc-400">
-            Something went wrong signing you in.
-          </p>
+          <WarningCircle className="text-faint" size={40} />
+          <p className="text-base text-muted">Something went wrong signing you in.</p>
         </div>
         <Button variant="secondary" onClick={() => navigate("/", { replace: true })}>
           Try again
@@ -49,8 +47,8 @@ export function AuthCallback() {
   return (
     <Screen>
       <div className="flex flex-1 flex-col items-center justify-center gap-3 text-center">
-        <CircleNotch className="animate-spin text-accent dark:text-accent-dark" size={32} />
-        <p className="text-base text-zinc-500 dark:text-zinc-400">Signing you in…</p>
+        <CircleNotch className="animate-spin text-accent" size={32} />
+        <p className="text-base text-muted">Signing you in…</p>
       </div>
     </Screen>
   );

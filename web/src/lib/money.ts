@@ -29,3 +29,38 @@ export function formatUsdcAmount(baseUnits: bigint): string {
   const formatted = fraction ? `${whole}.${fraction}` : whole;
   return negative ? `-${formatted}` : formatted;
 }
+
+/// Display-only Naira conversion. Hardcoded rate, no oracle: this is the authenticity
+/// hook (diaspora sending home thinks in Naira), never used for on-chain math.
+const NGN_PER_USD = 1600n;
+
+export function formatNairaFromUsdc(baseUnits: bigint): string {
+  const negative = baseUnits < 0n;
+  const abs = negative ? -baseUnits : baseUnits;
+  // baseUnits has 6 decimals; NGN = usd * rate, rounded to whole naira.
+  const naira = (abs * NGN_PER_USD) / BigInt(10 ** USDC_DECIMALS);
+  const grouped = Number(naira).toLocaleString("en-US");
+  return negative ? `-${grouped}` : grouped;
+}
+
+/// Formats an amount in the viewer's chosen display currency. Sign prefix (+/-) is the
+/// caller's job; this returns the symbol + number only.
+export function formatMoney(baseUnits: bigint, naira: boolean): string {
+  return naira ? `₦${formatNairaFromUsdc(baseUnits)}` : `$${formatUsdcAmount(baseUnits)}`;
+}
+
+/// Parses a human-entered Naira amount into USDC base units, at the same display-only
+/// rate. All bigint, no floats: naira is taken to 2dp (kobo) then scaled down by the
+/// rate. e.g. "50000" -> 31_250000 base units ($31.25 at 1600/$).
+export function parseNairaToUsdc(input: string): bigint {
+  const trimmed = input.trim();
+  if (!/^\d+(\.\d+)?$/.test(trimmed)) throw new Error("Enter a valid amount");
+
+  const [whole, fraction = ""] = trimmed.split(".");
+  const nairaKobo = BigInt(whole + fraction.padEnd(2, "0").slice(0, 2)); // naira * 100
+  // usdcBase = (nairaKobo / 100) / rate * 1e6 = nairaKobo * 1e6 / (100 * rate)
+  const usdcBase = (nairaKobo * BigInt(10 ** USDC_DECIMALS)) / (100n * NGN_PER_USD);
+  if (usdcBase <= 0n) throw new Error("Amount must be greater than zero");
+
+  return usdcBase;
+}

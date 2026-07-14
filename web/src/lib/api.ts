@@ -25,6 +25,8 @@ export interface HistoryEntry {
   amount: string;
   note: string | null;
   status: string;
+  senderDisplay: string | null;
+  recipientDisplay: string | null;
   claimIdOnchain: number | null;
   createdAt: number;
   fundTx: string | null;
@@ -46,7 +48,7 @@ export const api = {
 
   getLink: (id: string) => request<LinkMetadata>(`/links/${id}`),
 
-  claim: (body: { linkId: string; recipient: string; secret: string }) =>
+  claim: (body: { linkId: string; recipient: string; secret: string; recipientDisplay?: string }) =>
     request<{ status: string; txHash: string }>("/claims", { method: "POST", body: JSON.stringify(body) }),
 
   markReclaimed: (body: { linkId: string; reclaimTx: string }) =>

@@ -10,6 +10,8 @@ function toSummary(row: LinkRow) {
     amount: row.amount,
     note: row.note,
     status: derivedStatus(row),
+    senderDisplay: row.sender_display,
+    recipientDisplay: row.recipient_display,
     claimIdOnchain: row.claim_id_onchain,
     createdAt: row.created_at,
     fundTx: row.fund_tx,
