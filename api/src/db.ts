@@ -1,6 +1,16 @@
 import Database from "better-sqlite3";
+import { mkdirSync } from "node:fs";
+import { dirname, resolve } from "node:path";
 
 const DATABASE_PATH = process.env.DATABASE_PATH ?? "./owo.db";
+
+// better-sqlite3 creates the DB file but not its parent directory. On a host where
+// DATABASE_PATH points at a mounted volume (e.g. /data/owo.db), the mount provides
+// the dir; this mkdir just prevents a crash if it doesn't exist yet. The startup
+// log prints the absolute path so it's obvious in the host logs whether the DB is
+// living on the persistent volume or on ephemeral container storage.
+mkdirSync(dirname(resolve(DATABASE_PATH)), { recursive: true });
+console.log(`[db] opening SQLite at ${resolve(DATABASE_PATH)}`);
 
 export const db = new Database(DATABASE_PATH);
 db.pragma("journal_mode = WAL");
