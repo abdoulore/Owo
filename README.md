@@ -96,7 +96,7 @@ cd contracts
 forge script script/Deploy.s.sol --rpc-url arbitrum_sepolia --broadcast --verify
 ```
 
-Hosting the live app (Vercel + Railway) and the full build history are documented in [DEV_NOTES.md](DEV_NOTES.md).
+The live app runs on Vercel (web) and Railway (api).
 
 ## Scope
 
