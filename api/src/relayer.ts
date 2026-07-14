@@ -4,6 +4,7 @@ import { arbitrumSepolia } from "viem/chains";
 import { config } from "./config.js";
 import { db } from "./db.js";
 import { remitEscrowAbi } from "./abi/remitEscrow.js";
+import { mockUsdcAbi } from "./abi/mockUsdc.js";
 
 const MAX_ATTEMPTS = 3;
 const CONFIRMATION_TIMEOUT_MS = 15_000;
@@ -200,6 +201,51 @@ async function waitForConfirmation(txHash: Hex): Promise<boolean> {
     return receipt.status === "success";
   } catch {
     return false;
+  }
+}
+
+const FAUCET_MINT_AMOUNT = 100_000_000n; // 100 USDC (6 decimals)
+const FAUCET_BALANCE_CAP = 50_000_000n; // don't top up accounts already holding >= 50
+
+/// Mints test USDC to a user's smart account so a fresh sign-in has money to send,
+/// without the user ever touching a faucet or an explorer. MockUSDC.mint is
+/// unrestricted (testnet stand-in), and the relayer pays the gas. Uses the shared
+/// nonce chain so a faucet mint never collides with an in-flight claim on the same
+/// relayer key. Returns null (no tx) if the account already has enough.
+export async function mintTestUsdc(to: `0x${string}`): Promise<{ txHash: Hex | null }> {
+  const publicClient = getPublicClient();
+  const walletClient = getWalletClient();
+  const account = getRelayerAccount();
+
+  const balance = (await publicClient.readContract({
+    address: config.usdcAddress(),
+    abi: mockUsdcAbi,
+    functionName: "balanceOf",
+    args: [to],
+  })) as bigint;
+
+  if (balance >= FAUCET_BALANCE_CAP) return { txHash: null };
+
+  const nonce = await nextNonce();
+  try {
+    const txHash = await walletClient.writeContract({
+      address: config.usdcAddress(),
+      abi: mockUsdcAbi,
+      functionName: "mint",
+      args: [to, FAUCET_MINT_AMOUNT],
+      account,
+      chain: arbitrumSepolia,
+      nonce,
+    });
+    await waitForConfirmation(txHash);
+    console.log(`[relayer] faucet minted 100 USDC to ${to} tx=${txHash}`);
+    return { txHash };
+  } catch (err) {
+    // Stale nonce (a concurrent claim consumed it): resync so the next call recovers.
+    if (/nonce|already known|replacement/i.test((err as Error).message ?? "")) {
+      resetNonceFromChain();
+    }
+    throw err;
   }
 }
 

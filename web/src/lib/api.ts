@@ -56,4 +56,10 @@ export const api = {
     request<{ sent: HistoryEntry[]; received: HistoryEntry[]; pending: HistoryEntry[] }>(
       `/history/${address}`
     ),
+
+  faucet: (address: string) =>
+    request<{ funded: boolean; txHash: string | null }>("/faucet", {
+      method: "POST",
+      body: JSON.stringify({ address }),
+    }),
 };

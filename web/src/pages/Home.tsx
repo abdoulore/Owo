@@ -3,6 +3,7 @@ import {
   ArrowDown,
   ArrowUp,
   PaperPlaneTilt,
+  Plus,
   WarningCircle,
 } from "@phosphor-icons/react";
 import { api, type HistoryEntry } from "../lib/api";
@@ -13,6 +14,9 @@ import { isLoggedIn, loginWithGoogle } from "../lib/magic";
 import { Screen } from "../components/Screen";
 import { AmountDisplay } from "../components/AmountDisplay";
 import { StatusPill } from "../components/StatusPill";
+
+// Below this, offer the test-money top-up (matches the relayer's faucet cap).
+const LOW_BALANCE = 50_000_000n; // 50 USDC (6 decimals)
 
 type ActivityRow = HistoryEntry & { direction: "in" | "out" };
 
@@ -27,6 +31,7 @@ export function Home() {
   const [reclaimingId, setReclaimingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [sessionExpired, setSessionExpired] = useState(false);
+  const [funding, setFunding] = useState(false);
 
   async function refresh() {
     const address = await getSmartAccountAddress();
@@ -58,6 +63,24 @@ export function Home() {
       .finally(() => setLoading(false));
   }, []);
 
+  async function handleAddMoney() {
+    if (!(await isLoggedIn())) {
+      setSessionExpired(true);
+      return;
+    }
+    setFunding(true);
+    setError(null);
+    try {
+      const address = await getSmartAccountAddress();
+      await api.faucet(address);
+      await refresh();
+    } catch {
+      setError("Couldn't add test money. Try again.");
+    } finally {
+      setFunding(false);
+    }
+  }
+
   async function handleCancel(entry: ActivityRow) {
     if (entry.claimIdOnchain === null) return;
 
@@ -84,12 +107,23 @@ export function Home() {
 
   return (
     <Screen withNav>
-      <div className="flex flex-col items-center gap-1 py-6">
+      <div className="flex flex-col items-center gap-3 py-6">
         <p className="text-sm text-zinc-400 dark:text-zinc-500">Balance</p>
         {loading ? (
           <div className="h-12 w-32 animate-pulse rounded-full bg-zinc-100 dark:bg-zinc-900" />
         ) : (
           <AmountDisplay value={formatUsdcAmount(balance ?? 0n)} />
+        )}
+        {!loading && (balance ?? 0n) < LOW_BALANCE && (
+          <button
+            type="button"
+            disabled={funding}
+            onClick={handleAddMoney}
+            className="inline-flex items-center gap-1.5 rounded-full bg-zinc-100 px-4 py-2 text-sm font-medium text-zinc-700 transition-transform active:scale-[0.98] disabled:opacity-50 dark:bg-zinc-900 dark:text-zinc-200"
+          >
+            <Plus size={16} weight="bold" />
+            {funding ? "Adding…" : "Add test money"}
+          </button>
         )}
       </div>
 

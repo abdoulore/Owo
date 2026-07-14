@@ -5,6 +5,7 @@ import { linksRouter } from "./routes/links.js";
 import { claimsRouter } from "./routes/claims.js";
 import { reclaimsRouter } from "./routes/reclaims.js";
 import { historyRouter } from "./routes/history.js";
+import { faucetRouter } from "./routes/faucet.js";
 import { getRelayerHealth } from "./relayer.js";
 import { startIndexer } from "./indexer.js";
 import { config } from "./config.js";
@@ -32,6 +33,7 @@ app.use("/links", linksRouter);
 app.use("/claims", claimsRouter);
 app.use("/reclaims", reclaimsRouter);
 app.use("/history", historyRouter);
+app.use("/faucet", faucetRouter);
 
 app.listen(PORT, () => {
   console.log(`[api] listening on :${PORT}`);
