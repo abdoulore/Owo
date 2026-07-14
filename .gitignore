@@ -26,3 +26,7 @@ contracts/broadcast/*/*/run-*.json
 .DS_Store
 .vscode/
 *.log
+
+# Internal docs (not for the public repo)
+DEV_NOTES.md
+OWO_BUILD_SPEC.md

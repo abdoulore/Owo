@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { CircleNotch, WarningCircle } from "@phosphor-icons/react";
 import { completeGoogleLogin } from "../lib/magic";
+import { Screen } from "../components/Screen";
+import { Button } from "../components/Button";
 
 // Magic redirects here after Google login. Completing the flow consumes the
 // one-time credential in the URL, so it must run exactly once (StrictMode
@@ -29,18 +32,26 @@ export function AuthCallback() {
 
   if (failed) {
     return (
-      <main>
-        <p>Something went wrong signing you in.</p>
-        <button type="button" onClick={() => navigate("/", { replace: true })}>
+      <Screen>
+        <div className="flex flex-1 flex-col items-center justify-center gap-4 text-center">
+          <WarningCircle className="text-zinc-400 dark:text-zinc-500" size={40} />
+          <p className="text-base text-zinc-600 dark:text-zinc-400">
+            Something went wrong signing you in.
+          </p>
+        </div>
+        <Button variant="secondary" onClick={() => navigate("/", { replace: true })}>
           Try again
-        </button>
-      </main>
+        </Button>
+      </Screen>
     );
   }
 
   return (
-    <main>
-      <p>Signing you in…</p>
-    </main>
+    <Screen>
+      <div className="flex flex-1 flex-col items-center justify-center gap-3 text-center">
+        <CircleNotch className="animate-spin text-accent dark:text-accent-dark" size={32} />
+        <p className="text-base text-zinc-500 dark:text-zinc-400">Signing you in…</p>
+      </div>
+    </Screen>
   );
 }

@@ -60,6 +60,7 @@ linksRouter.get("/:id", (req, res) => {
     amount: row.amount,
     note: row.note,
     senderDisplay: row.sender_display,
+    sender: row.sender,
     status: derivedStatus(row),
   });
 });

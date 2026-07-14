@@ -16,6 +16,7 @@ export interface LinkMetadata {
   amount: string;
   note: string | null;
   senderDisplay: string | null;
+  sender: string;
   status: "created" | "funded" | "claimed" | "reclaimed" | "expired";
 }
 

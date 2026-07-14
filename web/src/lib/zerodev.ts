@@ -76,6 +76,19 @@ export async function getSmartAccountAddress(): Promise<`0x${string}`> {
   return client.account.address;
 }
 
+/// Submits a batched UserOperation and waits for its receipt. sendUserOperation
+/// and waitForUserOperationReceipt can throw raw paymaster/bundler errors (JSON-RPC
+/// blobs, ZeroDev policy-rejection text) -- never surface those directly in the UI.
+async function submitUserOp(client: KernelClient, callData: Hex) {
+  try {
+    const userOpHash = await client.sendUserOperation({ callData });
+    return await client.waitForUserOperationReceipt({ hash: userOpHash, timeout: 30_000 });
+  } catch (err) {
+    console.error("[zerodev] userOp failed:", err);
+    throw new Error("Something went wrong. Try again.");
+  }
+}
+
 /// Sends a payment: batches the USDC approval and the escrow send() into a single
 /// sponsored UserOperation, so the user never sees a separate "approve" step.
 /// Returns the on-chain claimId (parsed from the Sent event) and the fund tx hash,
@@ -100,8 +113,7 @@ export async function sendPayment(params: {
     },
   ]);
 
-  const userOpHash = await client.sendUserOperation({ callData });
-  const receipt = await client.waitForUserOperationReceipt({ hash: userOpHash, timeout: 30_000 });
+  const receipt = await submitUserOp(client, callData);
 
   if (!receipt.success) {
     throw new Error("Something went wrong sending this. Try again.");
@@ -131,8 +143,7 @@ export async function reclaimPayment(claimId: number): Promise<{ reclaimTx: Hex 
     },
   ]);
 
-  const userOpHash = await client.sendUserOperation({ callData });
-  const receipt = await client.waitForUserOperationReceipt({ hash: userOpHash, timeout: 30_000 });
+  const receipt = await submitUserOp(client, callData);
 
   if (!receipt.success) {
     throw new Error("Something went wrong cancelling this. Try again.");

@@ -37,3 +37,10 @@ export async function getUserEmail(): Promise<string | null> {
   const info = await magic.user.getInfo();
   return info.email;
 }
+
+/// Checked before any sensitive action (send/claim/reclaim) and by RequireAuth
+/// on route entry, so a mid-session Magic logout surfaces as "sign in again"
+/// instead of a cryptic failure deep inside the ZeroDev call.
+export async function isLoggedIn(): Promise<boolean> {
+  return magic.user.isLoggedIn();
+}

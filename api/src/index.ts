@@ -11,7 +11,9 @@ import { config } from "./config.js";
 import "./db.js";
 
 const app = express();
-const PORT = config.apiPort;
+// Most PaaS hosts (Railway, Render, Heroku) inject their own PORT and route
+// traffic only to it, regardless of what the app is configured to listen on.
+const PORT = process.env.PORT ?? config.apiPort;
 
 app.use(cors());
 app.use(express.json());
