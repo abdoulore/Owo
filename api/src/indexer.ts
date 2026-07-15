@@ -3,15 +3,14 @@ import { db } from "./db.js";
 import { config } from "./config.js";
 import { remitEscrowAbi } from "./abi/remitEscrow.js";
 
-const POLL_INTERVAL_MS = 4_000;
-// Alchemy's free tier caps eth_getLogs to a 10-block range per request (confirmed
-// against the actual deployed endpoint). Arbitrum Sepolia produces blocks far
-// faster than 10 blocks per POLL_INTERVAL_MS (measured ~5/sec, sometimes more) --
-// one chunk per tick falls further behind forever and never confirms a claim.
+const POLL_INTERVAL_MS = 12_000;
+// eth_getLogs is chunked to a conservative 10-block range per request, which every
+// RPC provider we might use (public Arbitrum endpoint, Alchemy, etc.) accepts.
+// Arbitrum Sepolia produces blocks far faster than 10 per tick (measured ~5/sec),
+// so one chunk per tick would fall behind forever and never confirm a claim.
 // pollOnce() below loops through consecutive chunks within a single tick until
-// caught up, paced with CHUNK_DELAY_MS so it doesn't blow through the free
-// tier's compute-units-per-second cap (confirmed empirically: unpaced looping
-// hit 429s constantly while catching up).
+// caught up, paced with CHUNK_DELAY_MS to stay under per-second rate limits
+// (unpaced looping hit 429s constantly while catching up).
 const MAX_BLOCK_RANGE = 10n;
 const MAX_CHUNKS_PER_TICK = 30; // ~300 blocks/tick before yielding to the next interval
 const CHUNK_DELAY_MS = 250;
