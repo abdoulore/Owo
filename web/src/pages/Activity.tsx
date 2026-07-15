@@ -8,7 +8,7 @@ import {
   WarningCircle,
 } from "@phosphor-icons/react";
 import { api, type HistoryEntry } from "../lib/api";
-import { formatMoney, formatUsdcAmount, formatNairaFromUsdc } from "../lib/money";
+import { formatMoney, formatUsdcDisplay, formatNairaFromUsdc } from "../lib/money";
 import { counterparty } from "../lib/rows";
 import { useCurrency } from "../lib/currency";
 import { getSmartAccountAddress } from "../lib/zerodev";
@@ -143,7 +143,7 @@ export function Activity() {
               </p>
               <p className="mt-1 text-center text-sm text-muted">
                 {naira
-                  ? `≈ $${formatUsdcAmount(BigInt(selected.amount))}`
+                  ? `≈ $${formatUsdcDisplay(BigInt(selected.amount))}`
                   : `≈ ₦${formatNairaFromUsdc(BigInt(selected.amount))}`}
               </p>
 

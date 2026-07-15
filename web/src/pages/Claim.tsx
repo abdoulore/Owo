@@ -9,7 +9,7 @@ import {
   WarningCircle,
 } from "@phosphor-icons/react";
 import { api, type LinkMetadata } from "../lib/api";
-import { formatUsdcAmount, formatNairaFromUsdc } from "../lib/money";
+import { formatUsdcDisplay, formatNairaFromUsdc } from "../lib/money";
 import { getUserAddress, getUserEmail, isLoggedIn, loginWithGoogle } from "../lib/magic";
 import { getSmartAccountAddress } from "../lib/zerodev";
 import { displayNameFromEmail } from "../lib/identity";
@@ -37,7 +37,7 @@ function MoneyCard({ link, children }: { link: LinkMetadata; children?: ReactNod
       <p className="text-lg text-muted">
         <span className="font-medium text-ink">{sender}</span> sent you
       </p>
-      <AmountDisplay value={formatUsdcAmount(BigInt(link.amount))} />
+      <AmountDisplay value={formatUsdcDisplay(BigInt(link.amount))} />
       <p className="text-sm text-muted">≈ ₦{formatNairaFromUsdc(BigInt(link.amount))}</p>
       {link.note && (
         <p className="max-w-[28ch] rounded-[1.25rem] bg-sand px-4 py-2 text-sm text-muted">
@@ -233,7 +233,7 @@ export function Claim() {
             loading={state.kind === "claiming"}
             onClick={handleClaim}
           >
-            {state.kind === "claiming" ? "Claiming…" : `Claim $${formatUsdcAmount(BigInt(state.link.amount))}`}
+            {state.kind === "claiming" ? "Claiming…" : `Claim $${formatUsdcDisplay(BigInt(state.link.amount))}`}
           </Button>
         </Screen>
       );
@@ -254,7 +254,7 @@ export function Claim() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.15, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
             >
-              <AmountDisplay value={formatUsdcAmount(BigInt(state.link.amount))} />
+              <AmountDisplay value={formatUsdcDisplay(BigInt(state.link.amount))} />
             </motion.div>
             <motion.p
               initial={reduceMotion ? false : { opacity: 0 }}

@@ -7,6 +7,7 @@ import {
   parseUsdcAmount,
   parseNairaToUsdc,
   formatUsdcAmount,
+  formatUsdcDisplay,
   formatNairaFromUsdc,
 } from "../lib/money";
 import { getUserEmail, isLoggedIn, loginWithGoogle } from "../lib/magic";
@@ -116,7 +117,7 @@ export function Send() {
 
   async function handleShare() {
     if (!shareLink || !parsedAmount) return;
-    const dollars = formatUsdcAmount(parsedAmount);
+    const dollars = formatUsdcDisplay(parsedAmount);
     if (navigator.share) {
       await navigator.share({ text: `Sent you $${dollars} on Owó`, url: shareLink }).catch(() => {});
     } else {
@@ -144,7 +145,7 @@ export function Send() {
   }
 
   if (shareLink) {
-    const dollars = parsedAmount ? formatUsdcAmount(parsedAmount) : "";
+    const dollars = parsedAmount ? formatUsdcDisplay(parsedAmount) : "";
     return (
       <Screen withNav>
         <motion.div
@@ -154,10 +155,11 @@ export function Send() {
           className="flex flex-1 flex-col items-center justify-center gap-4 text-center"
         >
           <CheckCircle className="text-accent" size={56} weight="fill" />
-          <p className="text-lg text-muted">${dollars} is ready to send</p>
-          <div className="w-full truncate rounded-[1.25rem] bg-sand px-4 py-3 text-sm text-muted">
-            {shareLink}
-          </div>
+          <p className="text-xl font-semibold text-ink">${dollars} ready to send</p>
+          <p className="max-w-[28ch] text-sm text-muted">
+            Share the link with anyone. They tap once to claim it, with no app or wallet
+            to set up.
+          </p>
         </motion.div>
         <div className="flex gap-3">
           <Button variant="secondary" onClick={handleCopy} className="flex-1">
@@ -176,7 +178,7 @@ export function Send() {
   const equivalent = parsedAmount
     ? currency === "usd"
       ? `≈ ₦${formatNairaFromUsdc(parsedAmount)}`
-      : `≈ $${formatUsdcAmount(parsedAmount)}`
+      : `≈ $${formatUsdcDisplay(parsedAmount)}`
     : null;
 
   // Quick-amount chips, in whichever currency the pad is set to.

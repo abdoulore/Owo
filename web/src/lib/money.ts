@@ -43,10 +43,26 @@ export function formatNairaFromUsdc(baseUnits: bigint): string {
   return negative ? `-${grouped}` : grouped;
 }
 
+/// Display formatter for dollars: exactly 2 decimals (rounded), with trailing-zero
+/// cents dropped so whole amounts read clean. 3_125_000n -> "3.13", 10_000_000n -> "10".
+/// Every money surface uses this; formatUsdcAmount keeps full precision, reserved for
+/// the Send currency-toggle round-trip where a lossy 2dp value would drift the amount.
+export function formatUsdcDisplay(baseUnits: bigint): string {
+  const negative = baseUnits < 0n;
+  const abs = negative ? -baseUnits : baseUnits;
+  // Round base units (6dp) to cents (2dp), half-up, all in bigint. 1e4 = 1e6 / 1e2.
+  const cents = (abs + 5000n) / 10000n;
+  const whole = cents / 100n;
+  const remainder = cents % 100n;
+  const body =
+    remainder === 0n ? whole.toString() : `${whole}.${remainder.toString().padStart(2, "0")}`;
+  return negative ? `-${body}` : body;
+}
+
 /// Formats an amount in the viewer's chosen display currency. Sign prefix (+/-) is the
 /// caller's job; this returns the symbol + number only.
 export function formatMoney(baseUnits: bigint, naira: boolean): string {
-  return naira ? `₦${formatNairaFromUsdc(baseUnits)}` : `$${formatUsdcAmount(baseUnits)}`;
+  return naira ? `₦${formatNairaFromUsdc(baseUnits)}` : `$${formatUsdcDisplay(baseUnits)}`;
 }
 
 /// Parses a human-entered Naira amount into USDC base units, at the same display-only
