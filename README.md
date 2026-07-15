@@ -4,9 +4,9 @@
 
 Built for the [UXmaxx Hackathon](https://www.encodeclub.com/programmes/uxmaxx-hackathon) (Encode Club x Particle Network).
 
-<!-- TODO(submission): add the demo video link before submitting. -->
 - **Live app**: [owo-eta.vercel.app](https://owo-eta.vercel.app)
-- **Demo video**: _coming soon_ &lt;VIDEO_URL&gt;
+<!-- TODO(submission): replace with the real demo video URL before submitting. -->
+- **Demo video**: _recording in progress_
 
 <!-- TODO(submission): add real screenshots. Suggested: the Send amount screen,
      the Claim screen, and the confetti success moment, side by side at phone
