@@ -1,4 +1,3 @@
-import { HandCoins } from "@phosphor-icons/react";
 import { motion, useReducedMotion } from "motion/react";
 import { loginWithGoogle } from "../lib/magic";
 import { Screen } from "../components/Screen";
@@ -15,9 +14,13 @@ export function Landing() {
         transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
         className="flex flex-1 flex-col items-center justify-center gap-5 text-center"
       >
-        <div className="flex size-20 items-center justify-center rounded-full bg-accent-soft">
-          <HandCoins className="text-accent" size={40} weight="fill" />
-        </div>
+        <img
+          src="/owo-logo.png"
+          alt="Owó"
+          width={80}
+          height={80}
+          className="size-20 rounded-[22%] shadow-lg shadow-accent/20"
+        />
         <h1 className="text-5xl font-semibold tracking-tight text-ink">Owó</h1>
         <p className="max-w-[26ch] text-lg text-muted">
           Send money to anyone, like a message. No wallets, no fees, no jargon.
