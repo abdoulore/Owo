@@ -110,3 +110,14 @@ The live app runs on Vercel (web) and Railway (api).
 ## Scope
 
 No fiat on/off-ramps (mock only), no KYC, no multi-currency beyond USDC (NGN is a display-only conversion), no native mobile apps, no group payments or recurring transfers.
+
+## Roadmap
+
+Owó today runs on Arbitrum Sepolia with USDC as the settlement asset, and funds enter through an in-app top-up. The path to a production remittance product is mainly about connecting the edges to local fiat:
+
+- **Fiat deposit (Paystack).** Let a sender fund their Owó balance with a card or bank transfer through Paystack, so the first dollar in requires no crypto at all. The on-chain USDC is minted or purchased behind the deposit; the user just sees money arrive.
+- **Fiat withdrawal / off-ramp.** Let a recipient cash out to a local bank account (bank name, account number) via a Paystack payout, closing the loop so money can leave Owó as easily as it enters. This is the step that turns a claimed link into spendable cash in Lagos or Nairobi.
+- **Mainnet and real USDC.** Move settlement to Arbitrum One with canonical USDC once the ramps are wired.
+- **Multi-corridor rates.** Live FX for the ₦ display, extended to other diaspora corridors beyond Naira.
+
+The deliberate design choice for this hackathon was to prove the hard part first: that money can move between two people who have never touched crypto, fully on-chain, with the wallet, gas, and chain completely invisible. The fiat ramps are well-understood integrations that sit on top of that proven core.
