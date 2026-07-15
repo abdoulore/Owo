@@ -23,7 +23,7 @@ _Screenshots: to be added._
 2. Recipient opens the link, logs in with their own Google account, taps Claim.
 3. Funds move on Arbitrum via a smart contract escrow. A relayer sponsors all gas.
 
-Neither party ever sees a wallet address, seed phrase, gas fee, or chain name. The claim secret lives only in the URL fragment (after `#`), generated in the browser. It is never sent to or stored on the server, except transiently when the recipient submits a claim.
+Neither party ever sees a wallet address, seed phrase, gas fee, or chain name. The recipient's screen says who it is from ("Ore sent you $25"), with the note if there was one. Amounts can be viewed in dollars or Naira with a single toggle, for anyone who thinks in ₦. The claim secret lives only in the URL fragment (after `#`), generated in the browser. It is never sent to or stored on the server, except transiently when the recipient submits a claim.
 
 **Getting money.** This is a testnet demo with no fiat on-ramp, so a new account starts at $0. Tapping **Add money** opens an add-cash sheet with a demo card, styled like the rest of the app, with no crypto vocabulary. Under the hood it calls the backend, which has the relayer mint test USDC (`MockUSDC`, a mintable stand-in for real USDC) straight to the account, capped per account to prevent spam. The demo card stands in for what would be a real card or on-ramp in production.
 
@@ -34,7 +34,7 @@ The crypto machinery is real; it is just hidden from the user.
 
 - **Google login (Magic).** Signing in with Google silently provisions each user's signing key. That key becomes the owner of a smart account. The user never sees a wallet, a seed phrase, or a private key.
 - **Account abstraction (ZeroDev).** A Kernel smart account holds each user's on-chain identity, and a sponsored paymaster covers gas for every call, so nobody ever tops up for gas. `send()` and `reclaim()` require `msg.sender` to be the user's own identity, so they go out as sponsored UserOperations from the frontend while the user is present. `claim()` takes the recipient as an explicit parameter, so it is the one call a backend relayer submits, also sponsored, on the recipient's behalf.
-- **Settlement (Arbitrum).** The escrow contract and USDC live on Arbitrum. Every send, claim, and reclaim is a real on-chain transaction, verifiable on Arbiscan from the Receipts tab.
+- **Settlement (Arbitrum).** The escrow contract and USDC live on Arbitrum. Every send, claim, and reclaim is a real on-chain transaction. The proof stays out of the way: no chain vocabulary in the primary UI, with the Arbiscan link one tap into any transaction's detail from the Activity tab.
 
 ## What makes it robust
 
@@ -61,9 +61,9 @@ Together these mean a leaked secret cannot be redirected. What remains is the in
                     └──────────────────┘
 ```
 
-- **contracts/**: Foundry project. `RemitEscrow.sol` locks USDC against a `keccak256(secret)` hash; `MockUSDC.sol` is a mintable 6-decimal testnet stand-in. Full test suite (14 tests including a fuzz test) green.
-- **api/**: Express + TypeScript (ESM), better-sqlite3, viem. Link metadata, sponsored relayer with nonce-managed queue and gas-bump retry, on-chain event indexer with cursor backfill.
-- **web/**: Vite + React + TypeScript, mobile-first. Magic SDK for Google login, ZeroDev for account abstraction. Payment-app UX (Cash App / Opay warmth), zero crypto vocabulary in the primary flows.
+- **contracts/**: Foundry project. `RemitEscrow.sol` locks USDC against a `keccak256(secret)` hash and gates `claim()` to the relayer; `MockUSDC.sol` is a mintable 6-decimal testnet stand-in. Full test suite (15 tests including a fuzz test) green.
+- **api/**: Express + TypeScript (ESM), better-sqlite3, viem. Link metadata, a test-money faucet, sponsored relayer with nonce-managed queue and gas-bump retry, on-chain event indexer with cursor backfill.
+- **web/**: Vite + React + TypeScript, mobile-first. Magic SDK for Google login, ZeroDev for account abstraction. Warm payment-app UX (Cash App / Opay warmth) with sender/recipient identity, a $/₦ toggle, and zero crypto vocabulary in the primary flows.
 
 ## Deployed contracts
 
