@@ -33,7 +33,7 @@ Neither party ever sees a wallet address, seed phrase, gas fee, or chain name. T
 The crypto machinery is real; it is just hidden from the user.
 
 - **Google login (Magic).** Signing in with Google silently provisions each user's signing key. That key becomes the owner of a smart account. The user never sees a wallet, a seed phrase, or a private key.
-- **Account abstraction (ZeroDev).** A Kernel smart account holds each user's on-chain identity, and a sponsored paymaster covers gas for every call, so nobody ever tops up for gas. `send()` and `reclaim()` require `msg.sender` to be the user's own identity, so they go out as sponsored UserOperations from the frontend while the user is present. `claim()` takes the recipient as an explicit parameter, so it is the one call a backend relayer submits, also sponsored, on the recipient's behalf.
+- **Account abstraction (ZeroDev).** A Kernel smart account holds each user's on-chain identity, and a sponsored paymaster covers gas for every call, so nobody ever tops up for gas. `send()` and `reclaim()` require `msg.sender` to be the user's own identity, so they go out as sponsored UserOperations from the frontend while the user is present. `claim()` is restricted on-chain to a backend relayer (see the security model below), which submits it, also sponsored, on the recipient's behalf.
 - **Settlement (Arbitrum).** The escrow contract and USDC live on Arbitrum. Every send, claim, and reclaim is a real on-chain transaction. The proof stays out of the way: no chain vocabulary in the primary UI, with the Arbiscan link one tap into any transaction's detail from the Activity tab.
 
 ## What makes it robust
@@ -45,7 +45,7 @@ The crypto machinery is real; it is just hidden from the user.
 - **`claim()` is gated to the relayer on-chain.** It reverts for any other caller (`NotRelayer`), so a leaked secret cannot be spent by calling the contract directly.
 - **The API locks each link to the first recipient that submits a valid claim.** The secret only becomes public *after* a claim attempt, and that attempt has already locked the link to the honest recipient, so a follow-up claim carrying the leaked secret to a different address is refused.
 
-Together these mean a leaked secret cannot be redirected. What remains is the intended bearer-token property of the check-to-cash model: whoever the sender shares the raw link with can claim it. The contract also rejects zero amounts and the hash of an empty secret, so a client bug cannot mint claimable-by-anyone links.
+Together these mean a leaked secret cannot be redirected. What remains is the intended bearer-token property of the check-to-cash model: whoever the sender shares the raw link with can claim it.
 
 **Crash recovery.** Claim secrets are never written to disk, so a relayer restart mid-claim cannot replay the transaction from the queue. Recovery is client-driven instead: the recipient taps Claim again, which is safe because the contract's Pending check makes resubmission idempotent. Funding is crash-proof on the other side too. If the sender's browser dies after the on-chain send but before notifying the API, the indexer independently matches the `Sent` event by claim hash and marks the link funded.
 
