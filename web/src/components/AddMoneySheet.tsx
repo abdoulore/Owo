@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { CreditCard, WarningCircle } from "@phosphor-icons/react";
+import { CreditCard, Info, WarningCircle } from "@phosphor-icons/react";
 import { api } from "../lib/api";
 import { isLoggedIn } from "../lib/magic";
 import { getSmartAccountAddress } from "../lib/zerodev";
@@ -25,9 +25,11 @@ export function AddMoneySheet({ open, onClose, onAdded, onSessionExpired }: AddM
   const reduceMotion = useReducedMotion();
   const [adding, setAdding] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
 
   async function handleAdd() {
     setError(null);
+    setNotice(null);
 
     if (!(await isLoggedIn())) {
       onClose();
@@ -38,7 +40,13 @@ export function AddMoneySheet({ open, onClose, onAdded, onSessionExpired }: AddM
     setAdding(true);
     try {
       const address = await getSmartAccountAddress();
-      await api.faucet(address);
+      const { funded } = await api.faucet(address);
+      // The backend declines the top-up once the balance is already comfortable.
+      // Closing silently there would read as a broken button, so say why instead.
+      if (!funded) {
+        setNotice("You've got plenty to send already. Add more once you've spent some.");
+        return;
+      }
       await onAdded();
       onClose();
     } catch {
@@ -92,6 +100,13 @@ export function AddMoneySheet({ open, onClose, onAdded, onSessionExpired }: AddM
               <div className="mb-4 flex items-center gap-2 text-sm text-red-600">
                 <WarningCircle size={18} weight="bold" />
                 <span>{error}</span>
+              </div>
+            )}
+
+            {notice && (
+              <div className="mb-4 flex items-center justify-center gap-2 text-sm text-muted">
+                <Info size={18} weight="bold" />
+                <span>{notice}</span>
               </div>
             )}
 
