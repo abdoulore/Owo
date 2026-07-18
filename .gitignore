@@ -30,3 +30,8 @@ contracts/broadcast/*/*/run-*.json
 # Internal docs (not for the public repo)
 DEV_NOTES.md
 OWO_BUILD_SPEC.md
+VOICEOVER.md
+
+# Local media (demo assets live outside the repo; the web app's copy is committed)
+/owo demo.mp4
+/owo logo.png
