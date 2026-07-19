@@ -1,0 +1,351 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Owó: send money like a message</title>
+<link rel="icon" type="image/png" href="owo-logo.png">
+<style>
+  /* Owó brand tokens, matching the app's design system. Deck is locked to the
+     brand's warm light theme on purpose: it presents the product in the
+     product's own skin. */
+  :root {
+    --cream: #fbf7f1;
+    --sand: #f2ebe0;
+    --sanddeep: #e9dccb;
+    --line: #e7dbca;
+    --ink: #2a2420;
+    --muted: #6a5c4e;
+    --faint: #9a8b79;
+    --accent: #c8471f;
+    --accent-soft: #f7e6dc;
+    --backdrop: #efe6d8;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--backdrop);
+    background-image: radial-gradient(90rem 60rem at 85% -20%, rgba(200, 71, 31, 0.07), transparent);
+    color: var(--ink);
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+  .deck { position: relative; height: 100dvh; width: 100%; }
+
+  .slide {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: clamp(1.5rem, 5vw, 4.5rem);
+    opacity: 0; transform: translateX(1.5rem);
+    transition: opacity .45s cubic-bezier(.16,1,.3,1), transform .45s cubic-bezier(.16,1,.3,1);
+    pointer-events: none;
+    visibility: hidden;
+  }
+  .slide.active { opacity: 1; transform: none; pointer-events: auto; visibility: visible; }
+  .slide.before { transform: translateX(-1.5rem); }
+
+  .inner { width: 100%; max-width: 66rem; }
+
+  h1, h2 { letter-spacing: -0.02em; line-height: 1.05; font-weight: 650; }
+  h1 { font-size: clamp(2.6rem, 7vw, 5rem); }
+  h2 { font-size: clamp(1.9rem, 4.4vw, 3.1rem); margin-bottom: clamp(1rem, 2.5vw, 1.75rem); }
+  p  { color: var(--muted); line-height: 1.55; font-size: clamp(1rem, 1.6vw, 1.2rem); max-width: 34rem; }
+  .num { font-variant-numeric: tabular-nums; }
+
+  /* Split slides: text one side, real product screenshot the other */
+  .split { display: grid; grid-template-columns: 1fr auto; gap: clamp(2rem, 5vw, 5rem); align-items: center; }
+  .split.flip { grid-template-columns: auto 1fr; }
+  .shot {
+    height: min(64vh, 34rem); width: auto; display: block;
+    border-radius: 1.5rem; border: 1px solid var(--line);
+    box-shadow: 0 24px 60px rgba(107, 62, 38, 0.18);
+  }
+
+  /* Title + close */
+  .center { text-align: center; display: flex; flex-direction: column; align-items: center; gap: 1.25rem; }
+  .logo { width: clamp(4.5rem, 9vw, 6.5rem); border-radius: 24%; box-shadow: 0 14px 40px rgba(200, 71, 31, 0.25); }
+  .tagline { font-size: clamp(1.15rem, 2.4vw, 1.6rem); color: var(--ink); font-weight: 500; }
+  .pill {
+    display: inline-block; text-decoration: none; font-weight: 600; font-size: .95rem;
+    background: var(--accent); color: #fff; border-radius: 999px; padding: .8rem 1.6rem;
+    transition: transform .15s ease;
+  }
+  .pill:active { transform: scale(.97); }
+  .pill.ghost { background: var(--sand); color: var(--ink); }
+  .meta { position: absolute; bottom: 1.4rem; left: 0; right: 0; text-align: center; font-size: .8rem; color: var(--faint); }
+
+  /* Problem slide */
+  .twocol { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(1.25rem, 3vw, 2.5rem); margin-top: .5rem; }
+  .paincard { background: var(--cream); border: 1px solid var(--line); border-radius: 1.5rem; padding: clamp(1.25rem, 2.5vw, 2rem); }
+  .paincard h3 { font-size: 1.05rem; margin-bottom: .5rem; }
+  .paincard p { font-size: 1rem; max-width: none; }
+  .kicker { margin-top: clamp(1.25rem, 3vw, 2rem); font-weight: 600; color: var(--ink); font-size: clamp(1.05rem, 2vw, 1.3rem); }
+  .kicker em { color: var(--accent); font-style: normal; }
+
+  /* Statement slide */
+  .statement h2 { font-size: clamp(2.4rem, 6vw, 4.4rem); line-height: 1.08; }
+  .statement h2 span { color: var(--accent); }
+  .statement p { margin-top: 1.25rem; max-width: 38rem; }
+
+  /* Flow slide */
+  .flow { display: flex; align-items: stretch; gap: .75rem; flex-wrap: wrap; margin-top: .5rem; }
+  .node {
+    flex: 1 1 10rem; background: var(--cream); border: 1px solid var(--line);
+    border-radius: 1.25rem; padding: 1.1rem 1.2rem; min-width: 10rem;
+  }
+  .node b { display: block; font-size: 1rem; margin-bottom: .3rem; }
+  .node span { font-size: .88rem; color: var(--muted); line-height: 1.4; display: block; }
+  .arrow { align-self: center; color: var(--accent); font-size: 1.4rem; font-weight: 700; }
+  .flowcap { margin-top: clamp(1.25rem, 3vw, 2rem); }
+
+  /* Security rows */
+  .rows { display: flex; flex-direction: column; gap: 1rem; margin-top: .5rem; }
+  .row { display: grid; grid-template-columns: 14rem 1fr; gap: 1.5rem; background: var(--cream); border: 1px solid var(--line); border-radius: 1.25rem; padding: 1.2rem 1.4rem; align-items: start; }
+  .row b { font-size: 1.02rem; }
+  .row p { font-size: .98rem; max-width: none; }
+
+  /* Roadmap grid */
+  .grid4 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: .5rem; }
+  .tile { background: var(--cream); border: 1px solid var(--line); border-radius: 1.25rem; padding: 1.2rem 1.4rem; }
+  .tile:first-child { background: var(--accent-soft); border-color: transparent; }
+  .tile b { display: block; margin-bottom: .35rem; font-size: 1.02rem; }
+  .tile p { font-size: .95rem; max-width: none; }
+
+  /* Controls */
+  .controls {
+    position: fixed; right: 1.25rem; bottom: 1.1rem; display: flex; align-items: center; gap: .6rem; z-index: 10;
+  }
+  .controls button {
+    width: 2.6rem; height: 2.6rem; border-radius: 999px; border: 1px solid var(--line);
+    background: var(--cream); color: var(--ink); font-size: 1.05rem; cursor: pointer;
+    transition: transform .15s ease;
+  }
+  .controls button:hover { background: var(--sand); }
+  .controls button:active { transform: scale(.94); }
+  .counter { font-size: .85rem; color: var(--faint); min-width: 3.2rem; text-align: center; font-variant-numeric: tabular-nums; }
+  .brand { position: fixed; left: 1.4rem; bottom: 1.35rem; display: flex; align-items: center; gap: .55rem; z-index: 10; }
+  .brand img { width: 1.6rem; border-radius: 24%; }
+  .brand span { font-size: .9rem; font-weight: 600; color: var(--muted); }
+  .hint { font-size: .85rem; color: var(--faint); }
+
+  @media (max-width: 860px) {
+    body { overflow: hidden; }
+    .split, .split.flip { grid-template-columns: 1fr; gap: 1.25rem; }
+    .split .shot { height: min(42vh, 22rem); margin: 0 auto; }
+    .split.flip img { order: 2; }
+    .twocol, .grid4 { grid-template-columns: 1fr; }
+    .row { grid-template-columns: 1fr; gap: .4rem; }
+    .flow { flex-direction: column; }
+    .arrow { transform: rotate(90deg); align-self: flex-start; margin-left: 1.2rem; }
+    .hint { display: none; }
+    .meta { display: none; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .slide { transition: none; }
+  }
+
+  @media print {
+    body { overflow: visible; background: var(--cream); }
+    .deck { height: auto; }
+    .slide { position: static; opacity: 1; transform: none; visibility: visible; min-height: 100vh; page-break-after: always; }
+    .controls, .brand { display: none; }
+  }
+</style>
+</head>
+<body>
+<main class="deck" id="deck">
+
+  <!-- 1 · Title -->
+  <section class="slide" aria-label="Title">
+    <div class="inner center">
+      <img class="logo" src="owo-logo.png" alt="Owó logo: a cowrie shell, the historic currency of West Africa">
+      <h1>Owó</h1>
+      <p class="tagline">Send money like a message.</p>
+      <p>Peer-to-peer USDC on Arbitrum, wrapped so nobody ever sees the crypto.</p>
+      <a class="pill" href="https://owo-eta.vercel.app" target="_blank" rel="noreferrer">owo-eta.vercel.app</a>
+      <span class="hint">Use the arrow keys</span>
+    </div>
+    <div class="meta">UXmaxx Hackathon · Encode Club x Particle Network</div>
+  </section>
+
+  <!-- 2 · Problem -->
+  <section class="slide" aria-label="Problem">
+    <div class="inner">
+      <h2>Sending money home is broken twice.</h2>
+      <div class="twocol">
+        <div class="paincard">
+          <h3>The remittance counter</h3>
+          <p>High fees, slow rails, and a queue at both ends.</p>
+        </div>
+        <div class="paincard">
+          <h3>The crypto escape hatch</h3>
+          <p>Wallets, seed phrases, gas, and the fear of one wrong tap.</p>
+        </div>
+      </div>
+      <p class="kicker">The rails already work. The experience is what's broken, so <em>the experience is the product</em>.</p>
+    </div>
+  </section>
+
+  <!-- 3 · Send -->
+  <section class="slide" aria-label="Sending">
+    <div class="inner split">
+      <div>
+        <h2>An amount, a note, a name.</h2>
+        <p>The sender signs in with Google, types what they're sending and who it's from, and gets a link.</p>
+        <p style="margin-top:.8rem"><strong style="color:var(--ink)">Sharing the link is sending the money.</strong> Any chat app works. Nothing to install on the other side.</p>
+      </div>
+      <img class="shot num" src="deck/send.png" alt="Owó send screen: ten dollars, about sixteen thousand Naira, quick presets, a Happy Birthday note, and the sender's name">
+    </div>
+  </section>
+
+  <!-- 4 · Claim -->
+  <section class="slide" aria-label="Claiming">
+    <div class="inner split flip">
+      <img class="shot num" src="deck/claim.png" alt="Owó claim screen: confetti around ten dollars with the message, it's in your Owó balance now">
+      <div>
+        <h2>One tap and it's theirs.</h2>
+        <p>The recipient opens the link, signs in with their own Google, and taps Claim.</p>
+        <p style="margin-top:.8rem">Confetti. The money is in their balance, and the sender's activity now reads <strong class="num" style="color:var(--ink)">To Ade · Claimed</strong>.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 · Invisible -->
+  <section class="slide" aria-label="What nobody saw">
+    <div class="inner statement">
+      <h2>No wallet. No seed phrase.<br>No gas. <span>No chain.</span></h2>
+      <p>Nobody in that story touched crypto. Yet every payment settled on Arbitrum, and the receipt is one tap away on Arbiscan for anyone who wants proof.</p>
+    </div>
+  </section>
+
+  <!-- 6 · How -->
+  <section class="slide" aria-label="Architecture">
+    <div class="inner">
+      <h2>What's actually underneath.</h2>
+      <div class="flow">
+        <div class="node"><b>Google sign-in</b><span>Magic silently provisions a signing key. No extension, no app.</span></div>
+        <div class="arrow">&#8594;</div>
+        <div class="node"><b>Smart account</b><span>The key owns a ZeroDev Kernel account: the user's on-chain identity.</span></div>
+        <div class="arrow">&#8594;</div>
+        <div class="node"><b>Escrow</b><span>RemitEscrow locks USDC on Arbitrum against the hash of the link's secret.</span></div>
+        <div class="arrow">&#8594;</div>
+        <div class="node"><b>Relayer</b><span>Submits claims and pays gas, alongside a sponsored paymaster for user calls.</span></div>
+      </div>
+      <p class="flowcap">"Continue with Google" is secretly the entire wallet ceremony. A sponsored paymaster covers every drop of gas.</p>
+    </div>
+  </section>
+
+  <!-- 7 · Security -->
+  <section class="slide" aria-label="Security">
+    <div class="inner">
+      <h2>A link that can't be stolen.</h2>
+      <div class="rows">
+        <div class="row">
+          <b>A check made out to cash</b>
+          <p>Funds lock against the hash of a secret that exists only in the link's URL fragment. It is never stored on any server.</p>
+        </div>
+        <div class="row">
+          <b>A real vulnerability, found and closed</b>
+          <p>A reverted claim would expose the secret in calldata. Now claim() reverts for anyone but the relayer on-chain, and the API locks each link to its first claimant, so a leaked secret cannot be redirected.</p>
+        </div>
+        <div class="row">
+          <b>Proven, not promised</b>
+          <p class="num">15 Foundry tests including a fuzz test, all green. Contracts deployed and verified on Arbiscan.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8 · Local -->
+  <section class="slide" aria-label="Local feel">
+    <div class="inner split">
+      <div>
+        <h2>Money that feels local.</h2>
+        <p>Balances and amounts flip between dollars and Naira in one tap, everywhere in the app.</p>
+        <p style="margin-top:.8rem">Payments say who they're from. Topping up is a card sheet, not a token faucet. The word "crypto" appears nowhere.</p>
+      </div>
+      <img class="shot num" src="deck/home.png" alt="Owó home screen showing the balance in Naira, one hundred sixty thousand, with Send and Add money buttons">
+    </div>
+  </section>
+
+  <!-- 9 · Roadmap -->
+  <section class="slide" aria-label="Roadmap">
+    <div class="inner">
+      <h2>What comes next.</h2>
+      <div class="grid4">
+        <div class="tile"><b>Paystack deposits</b><p>Fund with a card or bank transfer. No crypto on the way in.</p></div>
+        <div class="tile"><b>Bank payouts</b><p>Claim straight to a local account. Spendable cash in Lagos or Nairobi.</p></div>
+        <div class="tile"><b>Arbitrum One</b><p>Canonical USDC on mainnet once the ramps are wired.</p></div>
+        <div class="tile"><b>Live corridors</b><p>Real FX for the Naira display, then corridors beyond it.</p></div>
+      </div>
+      <p class="kicker">The hard part is proven. The ramps are integrations.</p>
+    </div>
+  </section>
+
+  <!-- 10 · Close -->
+  <section class="slide" aria-label="Close">
+    <div class="inner center">
+      <img class="logo" src="owo-logo.png" alt="Owó logo">
+      <h1 style="font-size:clamp(2rem,5vw,3.4rem)">Send money like a message.</h1>
+      <div style="display:flex; gap:.8rem; flex-wrap:wrap; justify-content:center">
+        <a class="pill" href="https://owo-eta.vercel.app" target="_blank" rel="noreferrer">Try it live</a>
+        <a class="pill ghost" href="https://github.com/abdoulore/Owo" target="_blank" rel="noreferrer">Read the code</a>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<div class="brand"><img src="owo-logo.png" alt=""><span>Owó</span></div>
+<div class="controls">
+  <button id="prev" aria-label="Previous slide">&#8592;</button>
+  <span class="counter num" id="counter"></span>
+  <button id="next" aria-label="Next slide">&#8594;</button>
+</div>
+
+<script>
+  const slides = Array.from(document.querySelectorAll(".slide"));
+  const counter = document.getElementById("counter");
+  let index = 0;
+
+  function clamp(n) { return Math.max(0, Math.min(slides.length - 1, n)); }
+
+  function show(n, fromHash) {
+    const next = clamp(n);
+    slides.forEach((slide, i) => {
+      slide.classList.toggle("active", i === next);
+      slide.classList.toggle("before", i < next);
+    });
+    index = next;
+    counter.textContent = (index + 1) + " / " + slides.length;
+    if (!fromHash) history.replaceState(null, "", "#" + (index + 1));
+  }
+
+  document.getElementById("next").addEventListener("click", () => show(index + 1));
+  document.getElementById("prev").addEventListener("click", () => show(index - 1));
+
+  document.addEventListener("keydown", (e) => {
+    if (["ArrowRight", "PageDown", " "].includes(e.key)) { e.preventDefault(); show(index + 1); }
+    else if (["ArrowLeft", "PageUp"].includes(e.key)) { e.preventDefault(); show(index - 1); }
+    else if (e.key === "Home") show(0);
+    else if (e.key === "End") show(slides.length - 1);
+  });
+
+  // Touch swipe
+  let touchX = null;
+  document.addEventListener("touchstart", (e) => { touchX = e.changedTouches[0].clientX; }, { passive: true });
+  document.addEventListener("touchend", (e) => {
+    if (touchX === null) return;
+    const dx = e.changedTouches[0].clientX - touchX;
+    if (Math.abs(dx) > 48) show(index + (dx < 0 ? 1 : -1));
+    touchX = null;
+  }, { passive: true });
+
+  // Deep link: #4 opens slide 4
+  const fromHash = parseInt(location.hash.slice(1), 10);
+  show(Number.isFinite(fromHash) ? fromHash - 1 : 0, true);
+</script>
+</body>
+</html>
